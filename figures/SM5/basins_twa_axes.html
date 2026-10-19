@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stroboscopic mean-field basins &amp; TWA sampling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --rail:#141b24;
+  --panel:#1c2530;
+  --panel-hi:#243040;
+  --line:#31404f;
+  --ink:#dbe3ec;
+  --ink-dim:#8fa0b1;
+  --drive:#f0a64b;
+  --up:#3b6fb6;
+  --dn:#c0392b;
+  --paper:#ffffff;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:#0d1219;
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:14px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+.app{display:grid;grid-template-columns:330px minmax(0,1fr);min-height:100vh}
+@media (max-width:900px){.app{grid-template-columns:1fr}}
+
+/* ---------- control rail ---------- */
+.rail{
+  background:var(--rail);
+  border-right:1px solid var(--line);
+  padding:22px 20px 40px;
+  display:flex;flex-direction:column;gap:18px;
+}
+.masthead h1{
+  font-size:16px;font-weight:600;margin:0 0 2px;letter-spacing:-0.01em;
+}
+.masthead p{margin:0;color:var(--ink-dim);font-size:12px}
+.eyebrow{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--drive);margin:0 0 8px;
+}
+.group{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 14px 16px}
+.group + .group{margin-top:-4px}
+label.field{display:block;margin-bottom:12px}
+label.field:last-child{margin-bottom:0}
+.field .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px}
+.field .name{font-size:12.5px;color:var(--ink)}
+.field .val{font-family:var(--mono);font-size:12px;color:var(--drive)}
+.hint{color:var(--ink-dim);font-size:11px;font-family:var(--mono);margin-top:6px}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:2px;
+  background:var(--line);outline:none;margin:6px 0 2px;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+  background:var(--drive);border:2px solid var(--rail);cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{
+  width:13px;height:13px;border-radius:50%;background:var(--drive);border:2px solid var(--rail);cursor:pointer;
+}
+input[type=number],select{
+  width:100%;background:var(--panel-hi);color:var(--ink);border:1px solid var(--line);
+  border-radius:4px;padding:6px 8px;font-family:var(--mono);font-size:12.5px;
+}
+input[type=number]:focus-visible,select:focus-visible,button:focus-visible,input[type=range]:focus-visible,
+input[type=checkbox]:focus-visible{outline:2px solid var(--drive);outline-offset:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+label.field.swept .name{color:var(--drive)}
+label.field.swept .name::after{content:" ⇄"}
+.check{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-bottom:9px;cursor:pointer}
+.check:last-child{margin-bottom:0}
+input[type=checkbox]{accent-color:var(--drive);width:14px;height:14px}
+button{
+  font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;
+  background:var(--panel-hi);color:var(--ink);border:1px solid var(--line);
+  border-radius:4px;padding:9px 10px;width:100%;transition:background .15s,border-color .15s;
+}
+button:hover{background:#2c3a4b;border-color:#43566b}
+button.primary{background:var(--drive);color:#1a1206;border-color:var(--drive);font-weight:600}
+button.primary:hover{background:#ffb862}
+button.primary[data-stale="1"]{box-shadow:0 0 0 3px rgba(240,166,75,.22)}
+.btnrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ---------- signature: drive strip ---------- */
+.drive{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px 10px}
+.drive canvas{width:100%;height:58px;display:block}
+.drive .status{
+  display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;
+  color:var(--ink-dim);margin-top:7px;letter-spacing:.02em;
+}
+
+/* ---------- stage ---------- */
+.stage{padding:26px 30px 40px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.paper{
+  background:var(--paper);border-radius:6px;padding:10px;
+  box-shadow:0 18px 40px rgba(0,0,0,.45);align-self:flex-start;width:100%;max-width:940px;
+}
+.paper canvas{display:block;width:100%;height:auto}
+.readout{
+  max-width:940px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden;
+}
+.cell{background:var(--panel);padding:10px 12px}
+.cell .k{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-dim)}
+.cell .v{font-family:var(--mono);font-size:15px;margin-top:2px}
+.note{max-width:940px;color:var(--ink-dim);font-size:12px;line-height:1.6}
+.note code{font-family:var(--mono);color:var(--ink);font-size:11.5px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ============ CONTROL RAIL ============ -->
+<aside class="rail">
+  <div class="masthead">
+    <p class="eyebrow">Floquet · dissipative Dicke</p>
+    <h1>Stroboscopic basins &amp; TWA sampling</h1>
+    <p>Sign of S<sub>x</sub> after the drive, over the plane of <span id="planeHead">initial Re[a] and S<sub>y</sub></span>.</p>
+  </div>
+
+  <!-- signature element: the square-wave drive, doubling as the scan indicator -->
+  <div class="drive">
+    <canvas id="driveCanvas" width="600" height="116"></canvas>
+    <div class="status"><span id="driveLabel">λ(t) square wave · T = 2π</span><span id="drivePct">idle</span></div>
+  </div>
+
+  <div class="group">
+    <p class="eyebrow">Hamiltonian</p>
+    <label class="field">
+      <span class="row"><span class="name">Detuning ε</span><span class="val" id="epsVal">0.050</span></span>
+      <input type="range" id="eps" min="0" max="0.2" step="0.002" value="0.05">
+      <span class="hint" id="omegaHint">ω = 1.050 &nbsp; ω_c = 0.950</span>
+    </label>
+    <div class="two">
+      <label class="field">
+        <span class="row"><span class="name">κ</span></span>
+        <input type="number" id="kappa" value="1.0" step="0.1" min="0">
+      </label>
+      <label class="field">
+        <span class="row"><span class="name">Periods</span></span>
+        <input type="number" id="periods" value="15" step="1" min="1" max="200">
+      </label>
+    </div>
+  </div>
+
+  <div class="group">
+    <p class="eyebrow">Phase-space plane</p>
+    <div class="two">
+      <label class="field">
+        <span class="row"><span class="name">x axis</span></span>
+        <select id="xVar">
+          <option value="ar" selected>Re[a](0)</option>
+          <option value="ai">Im[a](0)</option>
+          <option value="sx">S_x(0)</option>
+          <option value="sy">S_y(0)</option>
+          <option value="sz">S_z(0)</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="row"><span class="name">y axis</span></span>
+        <select id="yVar">
+          <option value="ar">Re[a](0)</option>
+          <option value="ai">Im[a](0)</option>
+          <option value="sx">S_x(0)</option>
+          <option value="sy" selected>S_y(0)</option>
+          <option value="sz">S_z(0)</option>
+        </select>
+      </label>
+    </div>
+    <div class="two">
+      <label class="field">
+        <span class="row"><span class="name">x min</span></span>
+        <input type="number" id="xMin" value="-0.5" step="0.05">
+      </label>
+      <label class="field">
+        <span class="row"><span class="name">x max</span></span>
+        <input type="number" id="xMax" value="0.5" step="0.05">
+      </label>
+    </div>
+    <div class="two">
+      <label class="field">
+        <span class="row"><span class="name">y min</span></span>
+        <input type="number" id="yMin" value="-0.5" step="0.05">
+      </label>
+      <label class="field">
+        <span class="row"><span class="name">y max</span></span>
+        <input type="number" id="yMax" value="0.5" step="0.05">
+      </label>
+    </div>
+    <button id="swap">Swap axes</button>
+  </div>
+
+  <div class="group">
+    <p class="eyebrow">Initial state</p>
+    <div class="two">
+      <label class="field" id="f_ar">
+        <span class="row"><span class="name">Re[a](0)</span></span>
+        <input type="number" id="b_ar" value="0" step="0.05">
+      </label>
+      <label class="field" id="f_ai">
+        <span class="row"><span class="name">Im[a](0)</span></span>
+        <input type="number" id="b_ai" value="0" step="0.05">
+      </label>
+    </div>
+    <div class="three">
+      <label class="field" id="f_sx">
+        <span class="row"><span class="name">S_x</span></span>
+        <input type="number" id="b_sx" value="1" step="0.1">
+      </label>
+      <label class="field" id="f_sy">
+        <span class="row"><span class="name">S_y</span></span>
+        <input type="number" id="b_sy" value="0" step="0.1">
+      </label>
+      <label class="field" id="f_sz">
+        <span class="row"><span class="name">S_z</span></span>
+        <input type="number" id="b_sz" value="0" step="0.1">
+      </label>
+    </div>
+    <div class="hint" id="sweptHint">⇄ swept by the grid — its value here only sets the centre of the TWA cloud.</div>
+  </div>
+
+  <div class="group">
+    <p class="eyebrow">Grid &amp; integrator</p>
+    <div class="two">
+      <label class="field">
+        <span class="row"><span class="name">Grid</span></span>
+        <select id="res">
+          <option value="100">100 × 100</option>
+          <option value="140">140 × 140</option>
+          <option value="180" selected>180 × 180</option>
+          <option value="260">260 × 260</option>
+          <option value="360">360 × 360</option>
+          <option value="500">500 × 500 (slow)</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="row"><span class="name">Steps / half-T</span></span>
+        <select id="steps">
+          <option value="60">60 (coarse)</option>
+          <option value="120" selected>120</option>
+          <option value="240">240</option>
+          <option value="480">480 (strict)</option>
+        </select>
+      </label>
+    </div>
+    <button class="primary" id="run">Compute basins</button>
+    <div class="hint">The λ = 0 half-period is propagated exactly; RK4 is used only while the drive is on.</div>
+  </div>
+
+  <div class="group">
+    <p class="eyebrow">TWA initial ensemble</p>
+    <div class="two">
+      <label class="field">
+        <span class="row"><span class="name">Particles N</span></span>
+        <input type="number" id="N" value="100" step="10" min="1">
+      </label>
+      <label class="field">
+        <span class="row"><span class="name">Samples M</span></span>
+        <input type="number" id="M" value="1000" step="100" min="1" max="200000">
+      </label>
+    </div>
+    <span class="hint" id="sigHint">σ_Re[a] = 0.0500 · σ_Sy = 0.1000</span>
+    <div style="height:12px"></div>
+    <label class="check"><input type="checkbox" id="showPts" checked> Show sampled points (white dots)</label>
+    <label class="check"><input type="checkbox" id="colorPts"> Colour samples by basin</label>
+    <label class="check"><input type="checkbox" id="restrict" checked> Fluctuate only the two plotted variables</label>
+    <label class="check"><input type="checkbox" id="smooth"> Smooth the basin map</label>
+    <label class="check"><input type="checkbox" id="asVar"> Read 1/(2√N) as a variance</label>
+    <div style="height:12px"></div>
+    <button id="resample">Draw new samples</button>
+  </div>
+
+  <div class="group">
+    <p class="eyebrow">Export</p>
+    <label class="field">
+      <span class="row"><span class="name">Resolution</span></span>
+      <select id="dpi">
+        <option value="150">150 DPI</option>
+        <option value="300">300 DPI</option>
+        <option value="600" selected>600 DPI</option>
+      </select>
+    </label>
+    <div class="btnrow">
+      <button id="png">Save PNG</button>
+      <button id="pdf">Save PDF</button>
+    </div>
+  </div>
+</aside>
+
+<!-- ============ STAGE ============ -->
+<main class="stage">
+  <div class="paper"><canvas id="fig"></canvas></div>
+
+  <div class="readout">
+    <div class="cell"><div class="k">Plane</div><div class="v" id="rdPlane">—</div></div>
+    <div class="cell"><div class="k">Grid points</div><div class="v" id="rdGrid">—</div></div>
+    <div class="cell"><div class="k">Blue area fraction</div><div class="v" id="rdArea">—</div></div>
+    <div class="cell"><div class="k">Samples in blue basin</div><div class="v" id="rdSamp">—</div></div>
+    <div class="cell"><div class="k">Compute time</div><div class="v" id="rdTime">—</div></div>
+  </div>
+
+  <p class="note">
+    The two variables chosen for the axes are swept over the grid; the remaining three are held at the values
+    set under <em>Initial state</em>. Each grid point is integrated to <code id="ntTime">t = 15·2π</code> and the
+    pixel is blue where <code>sign S_x &gt; 0</code>, red where it is negative.
+    TWA points are drawn around the initial state: the quadratures Re[a], Im[a] from a Gaussian of width
+    <code>1/(2√N)</code>, the spin from N binomial flips ±1 in the two directions transverse to
+    <strong id="ntSpin">S(0)</strong>, so the cloud shrinks as <code>1/√N</code>. With
+    “fluctuate only the two plotted variables” ticked, noise in the other three is suppressed, so every sample
+    really does lie in the plane shown; untick it for the full coherent-state ensemble, in which the dots are a
+    projection and the colour lookup is only approximate.
+  </p>
+</main>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. Dynamics
+   ------------------------------------------------------------
+   a = ar + i·ai, with
+     d(ar)/dt = ω_c·ai − (κ/2)·ar
+     d(ai)/dt = −ω_c·ar − λ(t)·Sx − (κ/2)·ai
+     d(Sx)/dt = −ω·Sy
+     d(Sy)/dt = ω·Sx − 4λ(t)·ar·Sz
+     d(Sz)/dt = 4λ(t)·ar·Sy
+   λ(t) is a square wave of period 2π: 1 on [0,π), 0 on [π,2π).
+   On the λ = 0 half the system is linear and solved in closed form;
+   the λ = 1 half uses fixed-step RK4.
+   ============================================================ */
+function evolveSx(ar, ai, sx, sy, sz, w, wc, kap, nP, nh){
+  const h = Math.PI / nh, h2 = h * 0.5, h6 = h / 6, g = 0.5 * kap;
+  const dmp = Math.exp(-g * Math.PI);
+  const cC = Math.cos(wc * Math.PI), sC = Math.sin(wc * Math.PI);
+  const cW = Math.cos(w * Math.PI),  sW = Math.sin(w * Math.PI);
+  for (let p = 0; p < nP; p++){
+    for (let s = 0; s < nh; s++){
+      let A = ar, B = ai, X = sx, Y = sy, Z = sz;
+      const a1 = wc*B - g*A, b1 = -wc*A - X - g*B, x1 = -w*Y, y1 = w*X - 4*A*Z, z1 = 4*A*Y;
+      A = ar + h2*a1; B = ai + h2*b1; X = sx + h2*x1; Y = sy + h2*y1; Z = sz + h2*z1;
+      const a2 = wc*B - g*A, b2 = -wc*A - X - g*B, x2 = -w*Y, y2 = w*X - 4*A*Z, z2 = 4*A*Y;
+      A = ar + h2*a2; B = ai + h2*b2; X = sx + h2*x2; Y = sy + h2*y2; Z = sz + h2*z2;
+      const a3 = wc*B - g*A, b3 = -wc*A - X - g*B, x3 = -w*Y, y3 = w*X - 4*A*Z, z3 = 4*A*Y;
+      A = ar + h*a3;  B = ai + h*b3;  X = sx + h*x3;  Y = sy + h*y3;  Z = sz + h*z3;
+      const a4 = wc*B - g*A, b4 = -wc*A - X - g*B, x4 = -w*Y, y4 = w*X - 4*A*Z, z4 = 4*A*Y;
+      ar += h6*(a1 + 2*a2 + 2*a3 + a4);
+      ai += h6*(b1 + 2*b2 + 2*b3 + b4);
+      sx += h6*(x1 + 2*x2 + 2*x3 + x4);
+      sy += h6*(y1 + 2*y2 + 2*y3 + y4);
+      sz += h6*(z1 + 2*z2 + 2*z3 + z4);
+    }
+    // exact λ = 0 propagation over a half period
+    const nar = dmp*(ar*cC + ai*sC), nai = dmp*(ai*cC - ar*sC);
+    const nsx = sx*cW - sy*sW,       nsy = sy*cW + sx*sW;
+    ar = nar; ai = nai; sx = nsx; sy = nsy;   // sz is frozen while λ = 0
+  }
+  return sx;
+}
+
+/* ============================================================
+   2. State
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const COL_UP = [59,111,182], COL_DN = [192,57,43];
+
+/* the five phase-space coordinates, in the order used by evolveSx */
+const VKEYS = ["ar", "ai", "sx", "sy", "sz"];
+const VARS = {
+  ar: {short:"Re[a]", parts:[{t:"Re"},{t:"["},{t:"a",it:true},{t:"(0)]"}], html:"Re[a]"},
+  ai: {short:"Im[a]", parts:[{t:"Im"},{t:"["},{t:"a",it:true},{t:"(0)]"}], html:"Im[a]"},
+  sx: {short:"S_x",   parts:[{t:"S",it:true},{t:"x",sub:true,it:true},{t:"(0)"}], html:"S<sub>x</sub>"},
+  sy: {short:"S_y",   parts:[{t:"S",it:true},{t:"y",sub:true,it:true},{t:"(0)"}], html:"S<sub>y</sub>"},
+  sz: {short:"S_z",   parts:[{t:"S",it:true},{t:"z",sub:true,it:true},{t:"(0)"}], html:"S<sub>z</sub>"}
+};
+
+const state = {
+  P: null,            // parameters of the map currently on screen
+  basin: null,        // Uint8Array, 1 = blue (Sx > 0)
+  res: 0,
+  ready: false,
+  running: false,
+  rowsDone: 0,
+  areaBlue: 0,
+  ms: 0,
+  samples: {v: null, N: 100, M: 0},
+  sampleBlue: null,
+  sampleStats: "—"
+};
+
+const basinCanvas = document.createElement("canvas");
+const basinCtx = basinCanvas.getContext("2d");
+let basinImage = null;
+
+function num(id, fallback){
+  const v = parseFloat($(id).value);
+  return Number.isFinite(v) ? v : fallback;
+}
+
+function readParams(){
+  const eps = +$("eps").value;
+  const xVar = $("xVar").value, yVar = $("yVar").value;
+
+  let xMin = num("xMin", -0.5), xMax = num("xMax", 0.5);
+  let yMin = num("yMin", -0.5), yMax = num("yMax", 0.5);
+  if (xMax < xMin){ const t = xMin; xMin = xMax; xMax = t; }
+  if (yMax < yMin){ const t = yMin; yMin = yMax; yMax = t; }
+  if (xMax - xMin < 1e-9) xMax = xMin + 1e-3;
+  if (yMax - yMin < 1e-9) yMax = yMin + 1e-3;
+
+  const base = {};
+  for (const k of VKEYS) base[k] = num("b_" + k, k === "sx" ? 1 : 0);
+
+  return {
+    eps,
+    w: 1 + eps,
+    wc: 1 - eps,
+    kap: Math.max(0, +$("kappa").value || 0),
+    nP: Math.max(1, Math.round(+$("periods").value || 15)),
+    nh: +$("steps").value,
+    res: +$("res").value,
+    xVar, yVar, xMin, xMax, yMin, yMax, base
+  };
+}
+
+/* pixel ↔ value maps, used by the scan, the overlay and the ticks */
+const toPxX = (P, v, x0, pw) => x0 + (v - P.xMin) / (P.xMax - P.xMin) * pw;
+const toPxY = (P, v, y0, ph) => y0 + (P.yMax - v) / (P.yMax - P.yMin) * ph;
+
+/* ============================================================
+   3. Basin scan (chunked so the page stays responsive)
+   ============================================================ */
+let scanToken = 0;
+
+function startScan(){
+  const P = readParams();
+  const res = P.res;
+  state.P = P; state.res = res;
+  state.basin = new Uint8Array(res * res);
+  state.ready = false; state.running = true; state.rowsDone = 0;
+  basinCanvas.width = res; basinCanvas.height = res;
+  basinImage = basinCtx.createImageData(res, res);
+  const d = basinImage.data;
+  for (let i = 0; i < res*res; i++){ d[4*i] = 236; d[4*i+1] = 238; d[4*i+2] = 241; d[4*i+3] = 255; }
+  basinCtx.putImageData(basinImage, 0, 0);
+
+  $("run").dataset.stale = "0";
+  $("rdGrid").textContent = res + " × " + res;
+  $("rdPlane").textContent = VARS[P.xVar].short + " × " + VARS[P.yVar].short;
+  $("ntTime").textContent = "t = " + P.nP + "·2π";
+  $("rdArea").textContent = "—";
+  $("rdTime").textContent = "running…";
+  const t0 = performance.now();
+  const token = ++scanToken;
+
+  const dx = (P.xMax - P.xMin) / res, dy = (P.yMax - P.yMin) / res;
+  const xi = VKEYS.indexOf(P.xVar), yi = VKEYS.indexOf(P.yVar);
+  const v = VKEYS.map(k => P.base[k]);        // the three frozen coordinates live here
+
+  function chunk(){
+    if (token !== scanToken) return;
+    const budget = performance.now() + 26;
+    while (state.rowsDone < res && performance.now() < budget){
+      const j = state.rowsDone;
+      v[yi] = P.yMax - (j + 0.5) * dy;             // row 0 = top = yMax
+      const off = j * res;
+      for (let i = 0; i < res; i++){
+        v[xi] = P.xMin + (i + 0.5) * dx;
+        const sxF = evolveSx(v[0], v[1], v[2], v[3], v[4], P.w, P.wc, P.kap, P.nP, P.nh);
+        const up = sxF > 0 ? 1 : 0;
+        state.basin[off + i] = up;
+        const c = up ? COL_UP : COL_DN, k = 4 * (off + i);
+        basinImage.data[k] = c[0]; basinImage.data[k+1] = c[1]; basinImage.data[k+2] = c[2];
+      }
+      state.rowsDone++;
+    }
+    basinCtx.putImageData(basinImage, 0, 0);
+    drawDrive(state.rowsDone / res, "scanning row " + state.rowsDone + "/" + res);
+    render();
+    if (state.rowsDone < res){ requestAnimationFrame(chunk); return; }
+
+    state.running = false; state.ready = true;
+    state.ms = performance.now() - t0;
+    let blue = 0;
+    for (let i = 0; i < res*res; i++) blue += state.basin[i];
+    state.areaBlue = blue / (res*res);
+    $("rdArea").textContent = (100*state.areaBlue).toFixed(1) + " %";
+    $("rdTime").textContent = (state.ms/1000).toFixed(2) + " s";
+    drawDrive(0, "λ(t) square wave · T = 2π", true);
+    classifySamples();
+    render();
+  }
+  requestAnimationFrame(chunk);
+}
+
+/* ============================================================
+   4. TWA initial-state sampling
+   ============================================================ */
+function gauss(){
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+}
+
+/* an orthonormal pair transverse to the unit vector n */
+function orthoFrame(n){
+  const ref = Math.abs(n[0]) < 0.9 ? [1,0,0] : [0,1,0];
+  let e1 = [n[1]*ref[2]-n[2]*ref[1], n[2]*ref[0]-n[0]*ref[2], n[0]*ref[1]-n[1]*ref[0]];
+  const l = Math.hypot(e1[0], e1[1], e1[2]) || 1;
+  e1 = e1.map(c => c/l);
+  const e2 = [n[1]*e1[2]-n[2]*e1[1], n[2]*e1[0]-n[0]*e1[2], n[0]*e1[1]-n[1]*e1[0]];
+  return [e1, e2];
+}
+
+function sampleTWA(){
+  const N = Math.max(1, Math.round(+$("N").value || 1));
+  const M = Math.max(1, Math.round(+$("M").value || 1));
+  const P = readParams();
+  const width = 1 / (2 * Math.sqrt(N));
+  const sigA = $("asVar").checked ? Math.sqrt(width) : width;   // N(0, σ) vs N(0, σ²)
+  const exact = M * N <= 1e7;
+
+  // spin fluctuations live in the plane transverse to the initial spin direction
+  let n = [P.base.sx, P.base.sy, P.base.sz];
+  const nl = Math.hypot(n[0], n[1], n[2]);
+  n = nl < 1e-12 ? [1,0,0] : n.map(c => c/nl);
+  const [e1, e2] = orthoFrame(n);
+
+  // which coordinates are allowed to fluctuate
+  const keep = {};
+  const restrict = $("restrict").checked;
+  for (const k of VKEYS) keep[k] = restrict ? (k === P.xVar || k === P.yVar) : true;
+
+  const flip = () => {          // one binomial spin-flip draw, σ = 1/√N
+    if (!exact) return gauss() / Math.sqrt(N);
+    let s = 0;
+    for (let i = 0; i < N; i++) s += Math.random() < 0.5 ? -1 : 1;
+    return s / N;
+  };
+
+  const v = {};
+  for (const k of VKEYS) v[k] = new Float64Array(M);
+
+  for (let m = 0; m < M; m++){
+    const d = {ar: sigA*gauss(), ai: sigA*gauss()};
+    const t1 = flip(), t2 = flip();
+    d.sx = t1*e1[0] + t2*e2[0];
+    d.sy = t1*e1[1] + t2*e2[1];
+    d.sz = t1*e1[2] + t2*e2[2];
+    for (const k of VKEYS) v[k][m] = P.base[k] + (keep[k] ? d[k] : 0);
+  }
+
+  state.samples = {v, N, M, sigA, exact};
+  $("sigHint").textContent = "σ_quad = " + sigA.toFixed(4) + " · σ_spin = " + (1/Math.sqrt(N)).toFixed(4)
+    + (exact ? "" : " · normal approx.");
+  classifySamples();
+}
+
+function classifySamples(){
+  const {v, M} = state.samples;
+  if (!state.ready || !M || !v){ state.sampleBlue = null; state.sampleStats = "—"; $("rdSamp").textContent = "—"; return; }
+  const P = state.P, res = state.res;
+  const xs = v[P.xVar], ys = v[P.yVar];
+  const flags = new Int8Array(M);
+  let blue = 0, out = 0;
+  for (let m = 0; m < M; m++){
+    const i = Math.floor((xs[m] - P.xMin) / (P.xMax - P.xMin) * res);
+    const j = Math.floor((P.yMax - ys[m]) / (P.yMax - P.yMin) * res);
+    if (i < 0 || i >= res || j < 0 || j >= res){ flags[m] = -1; out++; continue; }
+    const up = state.basin[j*res + i];
+    flags[m] = up; blue += up;
+  }
+  state.sampleBlue = flags;
+  const inRange = M - out;
+  state.sampleStats = inRange ? (100*blue/inRange).toFixed(1) + " %" : "—";
+  $("rdSamp").textContent = state.sampleStats + (out ? "  (" + out + " off-grid)" : "");
+}
+
+/* ============================================================
+   5. Figure (drawn in figure units; the same routine feeds the export)
+   ============================================================ */
+const FIG = {W:660, H:510, ml:88, mr:26, mt:46, mb:76};
+const SERIF = '"Times New Roman", Times, Georgia, serif';
+
+function fontOf(size, italic){ return (italic ? "italic " : "") + size + "px " + SERIF; }
+
+function richWidth(ctx, parts, size){
+  let w = 0;
+  for (const p of parts){ ctx.font = fontOf(p.sub ? size*0.72 : size, p.it); w += ctx.measureText(p.t).width; }
+  return w;
+}
+function drawRich(ctx, parts, x, y, size, align){
+  const w = richWidth(ctx, parts, size);
+  let cx = align === "center" ? x - w/2 : (align === "right" ? x - w : x);
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  for (const p of parts){
+    ctx.font = fontOf(p.sub ? size*0.72 : size, p.it);
+    ctx.fillText(p.t, cx, y + (p.sub ? size*0.24 : 0));
+    cx += ctx.measureText(p.t).width;
+  }
+}
+function niceTicks(min, max, target){
+  const raw = (max - min) / target;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const n = raw / mag;
+  const step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * mag;
+  const out = [];
+  for (let t = Math.ceil(min/step)*step; t <= max + 1e-9; t += step) out.push(Math.abs(t) < 1e-12 ? 0 : t);
+  const dec = Math.max(0, -Math.floor(Math.log10(step)) + (String(step).includes(".5") ? 1 : 0));
+  return {ticks: out, dec};
+}
+
+function render(target){
+  const ctx = target || screenCtx;
+  const S = target ? exportScale : screenScale;
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(S, S);
+  ctx.clearRect(0, 0, FIG.W, FIG.H);
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, FIG.W, FIG.H);
+
+  const x0 = FIG.ml, y0 = FIG.mt, pw = FIG.W - FIG.ml - FIG.mr, ph = FIG.H - FIG.mt - FIG.mb;
+  const P = state.P || readParams();
+
+  // --- figure title ---
+  ctx.fillStyle = "#12171d";
+  drawRich(ctx, [{t:"N", it:true}, {t:" = " + (state.samples.N != null ? state.samples.N : "—")}],
+           x0 + pw/2, y0 - 16, 26, "center");
+
+  // --- basin map ---
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x0, y0, pw, ph); ctx.clip();
+  if (state.res){
+    ctx.imageSmoothingEnabled = $("smooth").checked;
+    ctx.drawImage(basinCanvas, x0, y0, pw, ph);
+  } else {
+    ctx.fillStyle = "#eef0f3"; ctx.fillRect(x0, y0, pw, ph);
+    ctx.fillStyle = "#6b7684"; ctx.font = fontOf(17);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("Press “Compute basins” to scan the grid", x0 + pw/2, y0 + ph/2);
+  }
+
+  // --- TWA overlay ---
+  const sm = state.samples;
+  if ($("showPts").checked && sm.M && sm.v){
+    const byBasin = $("colorPts").checked && state.sampleBlue;
+    const xs = sm.v[P.xVar], ys = sm.v[P.yVar];
+    ctx.lineWidth = 0.5;
+    for (let m = 0; m < sm.M; m++){
+      const px = toPxX(P, xs[m], x0, pw);
+      const py = toPxY(P, ys[m], y0, ph);
+      if (px < x0-2 || px > x0+pw+2 || py < y0-2 || py > y0+ph+2) continue;
+      ctx.beginPath(); ctx.arc(px, py, 1.5, 0, 6.283185307);
+      if (byBasin){
+        const f = state.sampleBlue[m];
+        ctx.fillStyle = f === 1 ? "#a9ccff" : f === 0 ? "#ffc9b8" : "#dddddd";
+      } else {
+        ctx.fillStyle = "rgba(255,255,255,0.92)";
+      }
+      ctx.fill();
+      ctx.strokeStyle = "rgba(15,20,26,0.85)"; ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  // --- frame, ticks ---
+  ctx.strokeStyle = "#12171d"; ctx.lineWidth = 1;
+  ctx.strokeRect(x0 + 0.5, y0 + 0.5, pw - 1, ph - 1);
+  ctx.fillStyle = "#12171d";
+
+  const tx = niceTicks(P.xMin, P.xMax, 6), ty = niceTicks(P.yMin, P.yMax, 6);
+  ctx.font = fontOf(17);
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  for (const t of tx.ticks){
+    const px = toPxX(P, t, x0, pw);
+    ctx.beginPath(); ctx.moveTo(px, y0 + ph); ctx.lineTo(px, y0 + ph - 6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px, y0); ctx.lineTo(px, y0 + 6); ctx.stroke();
+    ctx.fillText(t.toFixed(tx.dec), px, y0 + ph + 9);
+  }
+  ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  for (const t of ty.ticks){
+    const py = toPxY(P, t, y0, ph);
+    ctx.beginPath(); ctx.moveTo(x0, py); ctx.lineTo(x0 + 6, py); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0 + pw, py); ctx.lineTo(x0 + pw - 6, py); ctx.stroke();
+    ctx.fillText(t.toFixed(ty.dec), x0 - 10, py);
+  }
+
+  // --- axis labels ---
+  drawRich(ctx, VARS[P.xVar].parts, x0 + pw/2, FIG.H - 22, 23, "center");
+  ctx.save();
+  ctx.translate(28, y0 + ph/2); ctx.rotate(-Math.PI/2);
+  drawRich(ctx, VARS[P.yVar].parts, 0, 0, 23, "center");
+  ctx.restore();
+
+  ctx.restore();
+}
+
+/* ---------- screen canvas sizing ---------- */
+const figCanvas = $("fig"), screenCtx = figCanvas.getContext("2d");
+let screenScale = 1, exportScale = 1;
+function fitScreen(){
+  const cssW = Math.max(320, Math.min(920, figCanvas.parentElement.clientWidth - 20));
+  const dpr = window.devicePixelRatio || 1;
+  screenScale = (cssW / FIG.W) * dpr;
+  figCanvas.width = Math.round(FIG.W * screenScale);
+  figCanvas.height = Math.round(FIG.H * screenScale);
+  figCanvas.style.width = cssW + "px";
+  figCanvas.style.height = (cssW * FIG.H / FIG.W) + "px";
+  render();
+}
+new ResizeObserver(fitScreen).observe(figCanvas.parentElement);
+
+/* ============================================================
+   6. Drive strip (λ(t) reference + scan indicator)
+   ============================================================ */
+const dCan = $("driveCanvas"), dCtx = dCan.getContext("2d");
+function drawDrive(progress, label, done){
+  const W = dCan.width, H = dCan.height;
+  dCtx.clearRect(0, 0, W, H);
+  const pad = 10, baseline = H - 22, top = 16, cyc = 3, cw = (W - 2*pad) / cyc;
+  // square wave
+  dCtx.lineWidth = 3; dCtx.strokeStyle = "#f0a64b"; dCtx.lineJoin = "miter";
+  dCtx.beginPath();
+  for (let c = 0; c < cyc; c++){
+    const x = pad + c*cw;
+    dCtx.moveTo(x, baseline); dCtx.lineTo(x, top);
+    dCtx.lineTo(x + cw/2, top); dCtx.lineTo(x + cw/2, baseline); dCtx.lineTo(x + cw, baseline);
+  }
+  dCtx.stroke();
+  // shaded λ = 1 windows
+  dCtx.fillStyle = "rgba(240,166,75,0.13)";
+  for (let c = 0; c < cyc; c++) dCtx.fillRect(pad + c*cw, top, cw/2, baseline - top);
+  // scan indicator
+  if (progress > 0){
+    dCtx.fillStyle = "rgba(240,166,75,0.20)";
+    dCtx.fillRect(pad, top - 6, (W - 2*pad) * progress, baseline - top + 12);
+    dCtx.fillStyle = "#f0a64b";
+    dCtx.fillRect(pad, H - 5, (W - 2*pad) * progress, 3);
+  }
+  dCtx.fillStyle = "#8fa0b1"; dCtx.font = "500 15px " + '"IBM Plex Mono", monospace';
+  dCtx.fillText("λ=1", pad + 6, top + 15);
+  dCtx.fillText("λ=0", pad + cw/2 + 6, baseline - 6);
+  $("driveLabel").textContent = label || "λ(t) square wave · T = 2π";
+  $("drivePct").textContent = done ? "ready" : (progress > 0 ? Math.round(progress*100) + " %" : "idle");
+}
+
+/* ============================================================
+   7. Export
+   ============================================================ */
+function renderToOffscreen(dpi){
+  const s = dpi / 96;
+  const c = document.createElement("canvas");
+  c.width = Math.round(FIG.W * s); c.height = Math.round(FIG.H * s);
+  const ctx = c.getContext("2d");
+  exportScale = s;
+  render(ctx);
+  return c;
+}
+function tag(){
+  const P = state.P || readParams();
+  const plane = P.xVar + "-" + P.yVar;
+  return plane + "_eps" + P.eps.toFixed(3) + "_N" + state.samples.N + "_M" + state.samples.M + "_" + P.nP + "T";
+}
+function download(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+$("png").addEventListener("click", () => {
+  const dpi = +$("dpi").value;
+  renderToOffscreen(dpi).toBlob(b => download(b, "basins_twa_" + tag() + "_" + dpi + "dpi.png"), "image/png");
+});
+
+/* Minimal single-image PDF (JPEG/DCTDecode) at the requested DPI. */
+$("pdf").addEventListener("click", () => {
+  const dpi = +$("dpi").value;
+  const c = renderToOffscreen(dpi);
+  const url = c.toDataURL("image/jpeg", 0.98);
+  const bin = atob(url.split(",")[1]);
+  const jpeg = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) jpeg[i] = bin.charCodeAt(i);
+  const ptW = FIG.W * 0.75, ptH = FIG.H * 0.75;   // 96 px/in → 72 pt/in
+  download(new Blob([buildPDF(jpeg, c.width, c.height, ptW, ptH)], {type: "application/pdf"}),
+           "basins_twa_" + tag() + "_" + dpi + "dpi.pdf");
+});
+
+function buildPDF(jpeg, pxW, pxH, ptW, ptH){
+  const parts = [], off = [];
+  let len = 0;
+  const enc = s => { const a = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i) & 0xff; return a; };
+  const put = u8 => { parts.push(u8); len += u8.length; };
+  const puts = s => put(enc(s));
+  const obj = (n, body) => { off[n] = len; puts(n + " 0 obj\n" + body + "\nendobj\n"); };
+
+  puts("%PDF-1.4\n%\u00E2\u00E3\u00CF\u00D3\n");
+  obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+  obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+  obj(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + ptW.toFixed(2) + " " + ptH.toFixed(2) +
+         "] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>");
+  off[4] = len;
+  puts("4 0 obj\n<< /Type /XObject /Subtype /Image /Width " + pxW + " /Height " + pxH +
+       " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpeg.length + " >>\nstream\n");
+  put(jpeg);
+  puts("\nendstream\nendobj\n");
+  const content = "q\n" + ptW.toFixed(2) + " 0 0 " + ptH.toFixed(2) + " 0 0 cm\n/Im0 Do\nQ\n";
+  obj(5, "<< /Length " + content.length + " >>\nstream\n" + content + "endstream");
+
+  const xref = len;
+  let x = "xref\n0 6\n0000000000 65535 f \n";
+  for (let n = 1; n <= 5; n++) x += String(off[n]).padStart(10, "0") + " 00000 n \n";
+  x += "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF\n";
+  puts(x);
+
+  const out = new Uint8Array(len);
+  let p = 0;
+  for (const u of parts){ out.set(u, p); p += u.length; }
+  return out;
+}
+
+/* ============================================================
+   8. Wiring
+   ============================================================ */
+function markStale(){ if (state.ready || !state.running) $("run").dataset.stale = "1"; }
+function syncEps(){
+  const e = +$("eps").value;
+  $("epsVal").textContent = e.toFixed(3);
+  $("omegaHint").innerHTML = "ω = " + (1+e).toFixed(3) + " &nbsp; ω_c = " + (1-e).toFixed(3);
+}
+$("eps").addEventListener("input", () => { syncEps(); markStale(); });
+
+/* keep the two axis choices distinct and mark the swept fields */
+function syncAxes(){
+  if ($("xVar").value === $("yVar").value){
+    $("yVar").value = VKEYS.find(k => k !== $("xVar").value);
+  }
+  const xv = $("xVar").value, yv = $("yVar").value;
+  for (const k of VKEYS) $("f_" + k).classList.toggle("swept", k === xv || k === yv);
+  $("planeHead").innerHTML = "initial " + VARS[xv].html + " and " + VARS[yv].html;
+  $("ntSpin").innerHTML = "S(0)";
+}
+function rescan(){ syncAxes(); sampleTWA(); startScan(); }
+
+["eps","kappa","periods","res","steps","xMin","xMax","yMin","yMax"].forEach(id =>
+  $(id).addEventListener("change", () => { syncAxes(); startScan(); }));
+["xVar","yVar"].forEach(id => $(id).addEventListener("change", rescan));
+VKEYS.forEach(k => $("b_" + k).addEventListener("change", rescan));
+["N","M"].forEach(id => $(id).addEventListener("change", () => { sampleTWA(); render(); }));
+["asVar","restrict"].forEach(id => $(id).addEventListener("change", () => { sampleTWA(); render(); }));
+["showPts","colorPts","smooth"].forEach(id => $(id).addEventListener("change", render));
+$("run").addEventListener("click", () => { syncAxes(); startScan(); });
+$("resample").addEventListener("click", () => { sampleTWA(); render(); });
+$("swap").addEventListener("click", () => {
+  const xv = $("xVar").value, yv = $("yVar").value;
+  const xn = [$("xMin").value, $("xMax").value];
+  $("xVar").value = yv; $("yVar").value = xv;
+  $("xMin").value = $("yMin").value; $("xMax").value = $("yMax").value;
+  $("yMin").value = xn[0];           $("yMax").value = xn[1];
+  rescan();
+});
+
+syncAxes();
+syncEps();
+drawDrive(0);
+sampleTWA();
+fitScreen();
+startScan();
+</script>
+</body>
+</html>

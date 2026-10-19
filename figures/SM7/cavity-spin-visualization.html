@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Driven Cavity–Spin System — Lyapunov analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Spectral:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#06080e; --ink2:#0b0f18; --panel:#0c111b; --line:rgba(168,190,224,.10);
+    --line2:rgba(168,190,224,.18); --text:#dde4f0; --muted:#7e8aa0; --dim:#576175;
+    --expand:#ff6f5d; --contract:#46d6e6; --neutral:#e7b84c; --glow:rgba(70,214,230,.5);
+    --field:#9b8cff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--ink);color:var(--text);font-family:'Spectral',Georgia,serif;-webkit-font-smoothing:antialiased}
+  body{min-height:100vh;padding:22px clamp(12px,3vw,40px) 40px;
+    background:
+      radial-gradient(1200px 700px at 80% -10%, rgba(155,140,255,.08), transparent 60%),
+      radial-gradient(1000px 600px at 6% 4%, rgba(70,214,230,.06), transparent 55%),
+      var(--ink);}
+  .wrap{max-width:1320px;margin:0 auto}
+  header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px 26px;border-bottom:1px solid var(--line);padding-bottom:16px}
+  .titleblock h1{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(24px,3.2vw,38px);letter-spacing:-.01em;line-height:1.05;
+    background:linear-gradient(92deg,#fff 8%,#b8aaff 52%,#7ce0ec);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .titleblock .sub{font-size:14px;color:var(--muted);margin-top:9px;max-width:70ch;font-style:italic;line-height:1.45}
+  .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.32em;text-transform:uppercase;color:var(--dim);margin-bottom:7px}
+
+  .controls{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+  .field{display:flex;flex-direction:column;gap:3px}
+  .field label{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding-left:2px}
+  input[type=number]{appearance:textfield;background:var(--ink2);color:var(--text);border:1px solid var(--line2);
+    font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;padding:9px 10px;border-radius:9px;width:84px}
+  input[type=number]:focus{outline:none;border-color:var(--glow)}
+  button.ctrl{background:var(--ink2);color:var(--text);border:1px solid var(--line2);font-family:'JetBrains Mono',monospace;
+    font-size:12px;font-weight:500;padding:10px 14px;border-radius:9px;cursor:pointer;transition:.15s;align-self:flex-end}
+  button.ctrl:hover{border-color:var(--glow);color:#fff}
+  button.ctrl:active{transform:translateY(1px)}
+  button.ctrl.primary{border-color:rgba(155,140,255,.5);color:#cfc6ff}
+  .speed{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);align-self:flex-end}
+  input[type=range]{accent-color:var(--field);width:90px}
+
+  .band{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:18px 0 6px}
+  .chip{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:7px 13px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+  .blurb{flex:1;min-width:300px;font-size:14.5px;line-height:1.5;color:#c4cddd}
+  .blurb b{color:#fff;font-weight:500}
+  .blurb code{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#b8aaff}
+
+  .readout{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0 6px;align-items:stretch}
+  .expcard{background:var(--ink2);border:1px solid var(--line);border-left:3px solid var(--dim);border-radius:9px;padding:8px 14px;min-width:120px;font-family:'JetBrains Mono',monospace}
+  .expcard .lbl{font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+  .expcard .val{font-size:19px;font-weight:700;margin-top:2px}
+  .expcard .tag{font-size:10px;color:var(--dim);margin-top:1px}
+  .meta{margin-left:auto;display:flex;gap:9px;align-items:center}
+  .metacard{background:transparent;border:1px dashed var(--line2);border-radius:9px;padding:8px 14px;font-family:'JetBrains Mono',monospace;text-align:right}
+  .metacard .lbl{font-size:10px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+  .metacard .val{font-size:16px;font-weight:700;color:var(--text);margin-top:2px}
+  .spectrum{margin:2px 0 6px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--dim);letter-spacing:.02em;line-height:1.7}
+  .spectrum b{color:var(--muted);font-weight:500;letter-spacing:.12em;text-transform:uppercase;font-size:10px;margin-right:8px}
+  .spectrum span.cl{cursor:pointer;border-radius:4px;padding:1px 4px;transition:.12s}
+  .spectrum span.cl:hover{background:rgba(168,190,224,.12)}
+  .spectrum span.sel{background:rgba(255,255,255,.14);outline:1px solid var(--line2)}
+  .expcard.cl{cursor:pointer} .expcard.cl:hover{border-color:var(--glow)}
+  .expcard.sel{box-shadow:0 0 0 1px var(--glow) inset}
+  .spectrum .qbtn{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);background:transparent;
+    border:1px solid var(--line2);border-radius:7px;padding:3px 9px;margin-right:5px;cursor:pointer}
+  .spectrum .qbtn:hover{color:#fff;border-color:var(--glow)}
+  .spectrum .qbtn.on{color:#cfc6ff;border-color:rgba(155,140,255,.6)}
+  .vecview{display:none;margin:6px 0 2px;padding:9px 13px;background:var(--ink2);border:1px solid var(--line);border-radius:12px}
+  .vecview.on{display:block}
+  .vrow{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:4px 0}
+  .vrow+.vrow{border-top:1px solid var(--line)}
+  .vlam{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;min-width:96px}
+  .vecview .cells{display:inline-flex;gap:3px;vertical-align:middle}
+  .vecview .cell{display:inline-block;width:12px;height:20px;border-radius:3px;border:1px solid rgba(168,190,224,.14)}
+  .vecview .glab{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--dim);margin:0 6px 0 3px}
+
+  .stage{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
+  @media(max-width:880px){.stage{grid-template-columns:1fr}}
+  .panel{position:relative;background:linear-gradient(180deg,var(--panel),#080c14);border:1px solid var(--line2);border-radius:16px;overflow:hidden;
+    box-shadow:inset 0 0 60px rgba(0,0,0,.5), 0 18px 50px -28px rgba(0,0,0,.9)}
+  .panel .phead{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:12px 16px;z-index:3;pointer-events:none}
+  .phead .name{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--text)}
+  .phead .hint{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:.06em}
+  canvas{display:block;width:100%;height:auto;aspect-ratio:1/.96}
+
+  .legend{display:flex;flex-wrap:wrap;gap:16px 24px;margin-top:18px;padding-top:16px;border-top:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+  .legend .it{display:flex;align-items:center;gap:8px}
+  .swatch{width:22px;height:0;border-top-width:3px;border-top-style:solid;border-radius:2px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .foot{margin-top:16px;font-size:12.5px;color:var(--dim);font-style:italic;line-height:1.55;max-width:96ch}
+  .foot code{font-family:'JetBrains Mono',monospace;font-style:normal;color:var(--muted);font-size:11.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="titleblock">
+      <div class="eyebrow">Cavity QED · Floquet driving · sensitivity &amp; stability</div>
+      <h1>Driven Cavity–Spin System</h1>
+      <div class="sub">A damped cavity field α coupled to N two-level atoms, split into four spin species with multinomial populations. The light–matter coupling λ(t) blinks on and off as a square wave (period 2π). Left: the cavity field in its complex plane. Right: the population-averaged spin s<sub>x</sub> and s<sub>y</sub>. Arrows show the fastest-growing/shrinking perturbation directions, projected into each plane.</div>
+    </div>
+    <div class="controls">
+      <div class="field"><label for="N">N atoms</label><input type="number" id="N" value="100" min="4" step="1"></div>
+      <div class="field"><label for="eps">ε detuning</label><input type="number" id="eps" value="0.5" step="0.05"></div>
+      <div class="field"><label for="ntraj">trajectories</label><input type="number" id="ntraj" value="200" min="1" max="800" step="10"></div>
+      <button class="ctrl primary" id="applyBtn">⟲ apply / resample</button>
+      <button class="ctrl" id="playBtn">⏸ pause</button>
+      <div class="speed">speed<input type="range" id="speed" min="0.25" max="3" step="0.25" value="1"><span id="speedv">1.0×</span></div>
+    </div>
+  </header>
+
+  <div class="band">
+    <span class="chip" id="classChip">—</span>
+    <div class="blurb" id="blurb"></div>
+  </div>
+
+  <div class="readout" id="readout"></div>
+  <div class="spectrum" id="spectrum"></div>
+  <div class="vecview" id="vecview"></div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="phead"><span class="name">Cavity field</span><span class="hint" id="physHint">complex plane (Re α, Im α)</span></div>
+      <canvas id="physCanvas"></canvas>
+    </div>
+    <div class="panel">
+      <div class="phead"><span class="name">Phase space</span><span class="hint" id="phaseHint">population-averaged spin</span></div>
+      <canvas id="phaseCanvas"></canvas>
+    </div>
+  </div>
+
+  <div class="controls" style="margin-top:14px">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);align-self:center;letter-spacing:.08em">SAVE PHASE FIGURE:</span>
+    <button class="ctrl" id="savePng">PNG · high-res</button>
+    <button class="ctrl" id="savePdf">PDF · 600 dpi</button>
+    <button class="ctrl" id="saveSvg">SVG · vector</button>
+  </div>
+
+  <div class="legend">
+    <div class="it"><span class="swatch" style="border-top-color:var(--expand)"></span> λ&gt;0 expanding (stretch)</div>
+    <div class="it"><span class="swatch" style="border-top-color:var(--contract)"></span> λ&lt;0 contracting (squeeze)</div>
+    <div class="it"><span class="swatch" style="border-top-color:var(--neutral)"></span> λ≈0 neutral</div>
+    <div class="it"><span class="dot" style="background:var(--field)"></span> cavity-field cloud / reference trail</div>
+    <div class="it"><span class="dot" style="background:hsl(190,80%,60%)"></span> spin cloud (hue = initial field phase)</div>
+    <div class="it">arrows = chosen Lyapunov modes; length/opacity = fraction living in this plane</div>
+    <div class="it">○ ring = mode lies essentially outside this plane</div>
+  </div>
+  <p class="foot">The 17 exponents are estimated live with Benettin's method — co-evolving the tangent vectors using the <b>analytic Jacobian</b> and re-orthonormalising each step (<code>Gram–Schmidt</code>). Because only the cavity dissipates, the spectrum must satisfy <code>Σλ = −κ = −0.05</code> exactly, regardless of ε — a built-in check. Estimates refine over ~20–30 s of running. λ(t)=1 on the first half of each period, 0 on the second. Populations pⱼ are drawn per trajectory from a Multinomial(N, ¼) and held fixed (ṗ=0). <b id="footnote"></b></p>
+</div>
+
+<script>
+"use strict";
+const TAU=Math.PI*2, TWO_PI=TAU, NEUTRAL=0.04, KAPPA=0.05;
+const C={expand:'#ff6f5d',contract:'#46d6e6',neutral:'#e7b84c',field:'#9b8cff',muted:'#7e8aa0',dim:'#576175'};
+
+/* ---------- state layout (17) ----------
+   0:Re α  1:Im α | 2:sx0 3:sy0 4:sz0 | 5:sx1 6:sy1 7:sz1 | 8:sx2 9:sy2 10:sz2 | 11:sx3 12:sy3 13:sz3 | 14:p0 15:p1 16:p2 */
+const SXI=[2,5,8,11], SYI=[3,6,9,12], SZI=[4,7,10,13];
+const DIM=17;
+
+function lambdaOf(t){ const m=((t%TWO_PI)+TWO_PI)%TWO_PI; return m<Math.PI?1.0:0.0; }
+
+const P={N:100,eps:0.5,sN:10,w:1.5,wc:0.5,K:KAPPA/2};
+function setParams(N,eps){ P.N=N; P.eps=eps; P.sN=Math.sqrt(N); P.w=1+eps; P.wc=1-eps; P.K=KAPPA/2; }
+
+/* ---------- vector field ---------- */
+function f(y,t){
+  const lam=lambdaOf(t), ar=y[0], ai=y[1];
+  const p0=y[14],p1=y[15],p2=y[16],p3=1-p0-p1-p2;
+  const sxsum=p0*y[2]+p1*y[5]+p2*y[8]+p3*y[11];
+  const c=4*lam/P.sN;
+  const o=new Array(17).fill(0);
+  o[0]=P.wc*ai-P.K*ar;
+  o[1]=-P.wc*ar-P.sN*lam*sxsum-P.K*ai;
+  for(let k=0;k<4;k++){ const b=SXI[k]; const sx=y[b],sy=y[b+1],sz=y[b+2];
+    o[b]=-P.w*sy; o[b+1]=P.w*sx-c*ar*sz; o[b+2]=c*ar*sy; }
+  return o;
+}
+/* ---------- analytic Jacobian (validated vs numerical to 6e-9) ---------- */
+function jacA(y,t){
+  const lam=lambdaOf(t), ar=y[0];
+  const p0=y[14],p1=y[15],p2=y[16],p3=1-p0-p1-p2;
+  const c=4*lam/P.sN, snl=P.sN*lam;
+  const J=Array.from({length:17},()=>new Array(17).fill(0));
+  J[0][0]=-P.K; J[0][1]=P.wc;
+  J[1][0]=-P.wc; J[1][1]=-P.K;
+  J[1][2]=-snl*p0; J[1][5]=-snl*p1; J[1][8]=-snl*p2; J[1][11]=-snl*p3;
+  J[1][14]=-snl*(y[2]-y[11]); J[1][15]=-snl*(y[5]-y[11]); J[1][16]=-snl*(y[8]-y[11]);
+  for(let k=0;k<4;k++){ const b=SXI[k]; const sy=y[b+1],sz=y[b+2];
+    J[b][b+1]=-P.w;
+    J[b+1][0]=-c*sz; J[b+1][b]=P.w; J[b+1][b+2]=-c*ar;
+    J[b+2][0]=c*sy;  J[b+2][b+1]=c*ar; }
+  return J;
+}
+function matvec(J,v){ const o=new Array(17).fill(0); for(let i=0;i<17;i++){let s=0;const Ji=J[i];for(let j=0;j<17;j++)s+=Ji[j]*v[j];o[i]=s;} return o; }
+
+/* ---------- integrators ---------- */
+function rk4State(y,t,dt){
+  const k1=f(y,t);
+  const y2=y.map((v,i)=>v+dt/2*k1[i]),k2=f(y2,t+dt/2);
+  const y3=y.map((v,i)=>v+dt/2*k2[i]),k3=f(y3,t+dt/2);
+  const y4=y.map((v,i)=>v+dt*k3[i]),  k4=f(y4,t+dt);
+  return y.map((v,i)=>v+dt/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]));
+}
+function rk4Aug(y,Q,t,dt){
+  const J1=jacA(y,t),          k1=f(y,t);
+  const y2=y.map((v,i)=>v+dt/2*k1[i]), J2=jacA(y2,t+dt/2), k2=f(y2,t+dt/2);
+  const y3=y.map((v,i)=>v+dt/2*k2[i]), J3=jacA(y3,t+dt/2), k3=f(y3,t+dt/2);
+  const y4=y.map((v,i)=>v+dt*k3[i]),   J4=jacA(y4,t+dt),   k4=f(y4,t+dt);
+  const Qn=Q.map(v=>{
+    const m1=matvec(J1,v);
+    const v2=v.map((x,i)=>x+dt/2*m1[i]), m2=matvec(J2,v2);
+    const v3=v.map((x,i)=>x+dt/2*m2[i]), m3=matvec(J3,v3);
+    const v4=v.map((x,i)=>x+dt*m3[i]),   m4=matvec(J4,v4);
+    return v.map((x,i)=>x+dt/6*(m1[i]+2*m2[i]+2*m3[i]+m4[i]));
+  });
+  const yn=y.map((v,i)=>v+dt/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]));
+  return [yn,Qn];
+}
+function gramSchmidt(Q){
+  const norms=[];
+  for(let i=0;i<Q.length;i++){
+    for(let j=0;j<i;j++){ let d=0; for(let m=0;m<17;m++) d+=Q[i][m]*Q[j][m];
+      for(let m=0;m<17;m++) Q[i][m]-=d*Q[j][m]; }
+    let n=0; for(let m=0;m<17;m++) n+=Q[i][m]*Q[i][m]; n=Math.sqrt(n);
+    norms.push(n); if(n>1e-300) for(let m=0;m<17;m++) Q[i][m]/=n;
+  }
+  return norms;
+}
+function eye(n){ return Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>i===j?1:0)); }
+function gaussian(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*v); }
+
+/* ---------- initial conditions ---------- */
+const SPIN_FIX={ // sx all 1; (sy,sz) per species
+  3:1,4:1,  6:1,7:-1,  9:-1,10:1,  12:-1,13:-1
+};
+function baseSpins(){ const y=new Array(17).fill(0); for(const k of SXI) y[k]=1; for(const i in SPIN_FIX) y[i]=SPIN_FIX[i]; return y; }
+function refIC(){ const y=baseSpins(); y[0]=0;y[1]=0; y[14]=0.25;y[15]=0.25;y[16]=0.25; return y; }
+function sampleProbs(N){
+  if(N<=20000){ const c=[0,0,0,0]; for(let i=0;i<N;i++) c[(Math.random()*4)|0]++; return [c[0]/N,c[1]/N,c[2]/N]; }
+  // large-N gaussian approximation of the multinomial proportions
+  const sd=Math.sqrt(0.25*0.75/N); let q=[0,0,0,0]; for(let j=0;j<4;j++) q[j]=Math.max(0,0.25+sd*gaussian());
+  const s=q[0]+q[1]+q[2]+q[3]; return [q[0]/s,q[1]/s,q[2]/s];
+}
+function cloudIC(){ const y=baseSpins(); y[0]=gaussian()*0.5; y[1]=gaussian()*0.5;
+  const p=sampleProbs(P.N); y[14]=p[0];y[15]=p[1];y[16]=p[2]; return y; }
+
+/* ---------- observable projections ---------- */
+function avgSx(y){ const p0=y[14],p1=y[15],p2=y[16],p3=1-p0-p1-p2; return p0*y[2]+p1*y[5]+p2*y[8]+p3*y[11]; }
+function avgSy(y){ const p0=y[14],p1=y[15],p2=y[16],p3=1-p0-p1-p2; return p0*y[3]+p1*y[6]+p2*y[9]+p3*y[12]; }
+function deltaAvg(v,y){ // project tangent v onto (⟨sx⟩,⟨sy⟩) at reference y
+  const p=[y[14],y[15],y[16],1-y[14]-y[15]-y[16]];
+  const dp=[v[14],v[15],v[16],-(v[14]+v[15]+v[16])];
+  let dsx=0,dsy=0;
+  for(let k=0;k<4;k++){ dsx+=p[k]*v[SXI[k]]+dp[k]*y[SXI[k]]; dsy+=p[k]*v[SYI[k]]+dp[k]*y[SYI[k]]; }
+  return [dsx,dsy];
+}
+
+/* ---------- engine ---------- */
+const ENGINE={ y:null,Q:null,acc:null,T:0,cloud:[],hues:[],trail:[],running:true,speed:1,
+  dt:0.005, substeps:9, fieldScale:6, shown:new Set(), autoExtremes:true, physics:null,phase:null,physC:null,phaseC:null };
+
+function initSystem(){
+  setParams(Math.max(4,Math.round(+document.getElementById('N').value)||100), +document.getElementById('eps').value||0);
+  const ntraj=Math.max(1,Math.min(800,Math.round(+document.getElementById('ntraj').value)||200));
+  ENGINE.y=refIC(); ENGINE.Q=eye(DIM); ENGINE.acc=new Array(DIM).fill(0); ENGINE.T=0; ENGINE.shown=new Set(); ENGINE.autoExtremes=true;
+  // settle reference onto the attractor (cheap: reference only, no tangents)
+  let t=0; const warm=Math.round(14*TWO_PI/ENGINE.dt);
+  for(let i=0;i<warm;i++){ ENGINE.y=rk4State(ENGINE.y,t,ENGINE.dt); t+=ENGINE.dt; }
+  // restart clock so λ(t) phase is coherent for cloud + reference
+  ENGINE.T=0;
+  ENGINE.cloud=[]; ENGINE.hues=[]; ENGINE.trail=[];
+  for(let i=0;i<ntraj;i++){ const s=cloudIC(); ENGINE.cloud.push(s);
+    ENGINE.hues.push(((Math.atan2(s[1],s[0])/TAU)*360+360)%360); }
+  ENGINE.fieldScale=6;
+  document.getElementById('phaseHint').textContent='cloud of '+ntraj+' trajectories';
+  document.getElementById('blurb').innerHTML=
+    'ω=1+ε=<b>'+P.w.toFixed(2)+'</b>, ω_c=1−ε=<b>'+P.wc.toFixed(2)+'</b>, κ=0.05, √N=<b>'+P.sN.toFixed(2)+'</b>. '+
+    'The cavity field is driven by the spins only while <code>λ(t)=1</code>; in the off-phase it just rotates and decays. '+
+    'Near <b>ε≈0.5</b> the dynamics are chaotic (positive λ_max); near ε=0 or ε=1 they are regular.';
+  document.getElementById('footnote').textContent='Each spin species keeps |s|²=3 (a conserved length), which together with the three frozen populations pins several exponents near zero.';
+}
+
+function step(){
+  const sub=Math.max(1,Math.round(ENGINE.substeps*ENGINE.speed)), dt=ENGINE.dt;
+  for(let s=0;s<sub;s++){
+    const t=ENGINE.T;
+    [ENGINE.y,ENGINE.Q]=rk4Aug(ENGINE.y,ENGINE.Q,t,dt);
+    const norms=gramSchmidt(ENGINE.Q);
+    for(let i=0;i<norms.length;i++) ENGINE.acc[i]+=Math.log(norms[i]);
+    for(let i=0;i<ENGINE.cloud.length;i++) ENGINE.cloud[i]=rk4State(ENGINE.cloud[i],t,dt);
+    ENGINE.T+=dt;
+    ENGINE.trail.push([ENGINE.y[0],ENGINE.y[1],avgSx(ENGINE.y),avgSy(ENGINE.y)]);
+    if(ENGINE.trail.length>2400) ENGINE.trail.shift();
+  }
+}
+function exps(){ return ENGINE.acc.map(a=>ENGINE.T>0?a/ENGINE.T:0); }
+
+/* ---------- canvas ---------- */
+function setupCanvas(c){ const dpr=Math.min(window.devicePixelRatio||1,2); const r=c.getBoundingClientRect();
+  c.width=Math.round(r.width*dpr); c.height=Math.round(r.height*dpr);
+  const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return {ctx,W:r.width,H:r.height}; }
+function arrow(ctx,x1,y1,x2,y2,col,w,head=9){ ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=w;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  const a=Math.atan2(y2-y1,x2-x1),d=Math.hypot(x2-x1,y2-y1); if(d<3)return;
+  ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-head*Math.cos(a-0.42),y2-head*Math.sin(a-0.42));
+  ctx.lineTo(x2-head*Math.cos(a+0.42),y2-head*Math.sin(a+0.42));ctx.closePath();ctx.fill(); }
+function gridFrame(ctx,m,pw,ph,X,Y,xr,yr,xlabel,ylabel){
+  ctx.strokeStyle='rgba(168,190,224,.07)';ctx.lineWidth=1;
+  for(let i=0;i<=8;i++){ const gx=m.l+pw*i/8; ctx.beginPath();ctx.moveTo(gx,m.t);ctx.lineTo(gx,m.t+ph);ctx.stroke();
+    const gy=m.t+ph*i/8; ctx.beginPath();ctx.moveTo(m.l,gy);ctx.lineTo(m.l+pw,gy);ctx.stroke(); }
+  ctx.strokeStyle='rgba(168,190,224,.2)';ctx.lineWidth=1.2;
+  if(yr[0]<0&&yr[1]>0){ctx.beginPath();ctx.moveTo(m.l,Y(0));ctx.lineTo(m.l+pw,Y(0));ctx.stroke();}
+  if(xr[0]<0&&xr[1]>0){ctx.beginPath();ctx.moveTo(X(0),m.t);ctx.lineTo(X(0),m.t+ph);ctx.stroke();}
+  ctx.strokeStyle='rgba(168,190,224,.18)';ctx.lineWidth=1;ctx.strokeRect(m.l,m.t,pw,ph);
+  ctx.fillStyle=C.muted;ctx.font="11px 'JetBrains Mono',monospace";ctx.textAlign='center';
+  ctx.fillText(xlabel,m.l+pw/2,m.t+ph+30);
+  ctx.save();ctx.translate(m.l-38,m.t+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText(ylabel,0,0);ctx.restore();
+  ctx.textAlign='left';
+}
+function vIdx(E){ let ei=0,ci=0; for(let i=0;i<E.length;i++){ if(E[i]>E[ei])ei=i; if(E[i]<E[ci])ci=i; } return [ei,ci]; }
+function colorOf(v){ return v>NEUTRAL?C.expand:v<-NEUTRAL?C.contract:C.neutral; }
+function activeDirs(E){
+  if(ENGINE.autoExtremes){ const [ei,ci]=vIdx(E); return [[ei,E[ei]],[ci,E[ci]]]; }
+  return [...ENGINE.shown].sort((a,b)=>E[b]-E[a]).map(i=>[i,E[i]]);
+}
+function shownSet(E){ // indices currently displayed (for highlight)
+  if(ENGINE.autoExtremes){ const [ei,ci]=vIdx(E); return new Set([ei,ci]); }
+  return ENGINE.shown;
+}
+const VGROUPS=[['α',[0,1],['Re','Im']],['s⁰',[2,3,4],['x','y','z']],['s¹',[5,6,7],['x','y','z']],
+  ['s²',[8,9,10],['x','y','z']],['s³',[11,12,13],['x','y','z']],['p',[14,15,16],['0','1','2']]];
+function toggleMode(idx){ ENGINE.autoExtremes=false;
+  if(ENGINE.shown.has(idx)) ENGINE.shown.delete(idx); else ENGINE.shown.add(idx); drawReadout(); }
+function setShown(mode){
+  if(mode==='auto'){ ENGINE.autoExtremes=true; ENGINE.shown=new Set(); }
+  else if(mode==='all'){ ENGINE.autoExtremes=false; ENGINE.shown=new Set(Array.from({length:DIM},(_,i)=>i)); }
+  else { ENGINE.autoExtremes=false; ENGINE.shown=new Set(); }
+  drawReadout();
+}
+/* one compact 17-cell breakdown row per shown mode */
+function renderVecView(raw){
+  const vv=document.getElementById('vecview');
+  const set=shownSet(raw);
+  const idxs=[...set].sort((a,b)=>raw[b]-raw[a]);
+  if(idxs.length===0){ vv.className='vecview'; vv.innerHTML=''; return; }
+  let html='';
+  for(const idx of idxs){
+    const v=ENGINE.Q[idx], val=raw[idx], col=colorOf(val);
+    let maxc=1e-9; for(let i=0;i<17;i++) maxc=Math.max(maxc,Math.abs(v[i]));
+    html+=`<div class="vrow"><span class="vlam" style="color:${col}">λ=${val>=0?'+':''}${val.toFixed(3)}</span>`;
+    for(const [name,ids,subs] of VGROUPS){ html+=`<span class="cells">`;
+      ids.forEach((ci,k)=>{ const x=v[ci], a=Math.max(0.06,Math.abs(x)/maxc).toFixed(3);
+        const cc=x>0?'255,111,93':'70,214,230';
+        html+=`<span class="cell" title="${name} ${subs[k]} = ${x.toFixed(3)}" style="background:rgba(${cc},${a})"></span>`; });
+      html+=`</span><span class="glab">${name}</span>`; }
+    html+=`</div>`;
+  }
+  vv.className='vecview on'; vv.innerHTML=html;
+}
+/* draw chosen modes' projections, normalised so every one is visible.
+   length & opacity encode how much of the (unit) 17-D vector lives in this plane. */
+function drawModeArrows(ctx, dirs, ox, oy, projFn, X, Y, lenData, sc){
+  sc=sc||1;
+  const items=dirs.map(([idx,val])=>{ const p=projFn(idx); return {idx,val,p,n:Math.hypot(p[0],p[1])}; });
+  let maxN=1e-9; for(const it of items) maxN=Math.max(maxN,it.n);
+  const oxs=X(ox), oys=Y(oy);
+  for(const it of items){
+    const col=colorOf(it.val), frac=it.n/maxN;
+    const lab='λ = '+(it.val>=0?'+':'')+it.val.toFixed(2);
+    if(it.n<1e-6){ // essentially no component in this plane
+      ctx.globalAlpha=.5; ctx.strokeStyle=col; ctx.lineWidth=1.6*sc;
+      ctx.beginPath(); ctx.arc(oxs,oys,8*sc,0,TAU); ctx.stroke(); ctx.globalAlpha=1;
+      ctx.fillStyle=col; ctx.font="700 "+(13.5*sc)+"px 'JetBrains Mono',monospace"; ctx.textAlign='left';
+      ctx.fillText(lab+' ⟂plane', oxs+11*sc, oys-9*sc);
+      continue;
+    }
+    const ux=it.p[0]/it.n, uy=it.p[1]/it.n, L=lenData*(0.42+0.58*frac);
+    const tx=X(ox+ux*L), ty=Y(oy+uy*L);
+    ctx.globalAlpha=0.4+0.6*frac;
+    arrow(ctx,oxs,oys,tx,ty,col,3*sc,9*sc);
+    ctx.globalAlpha=1; ctx.fillStyle=col; ctx.font="700 "+(14.5*sc)+"px 'JetBrains Mono',monospace";
+    ctx.textAlign=tx>=oxs?'left':'right';
+    ctx.fillText(lab, tx+(tx>=oxs?7*sc:-7*sc), ty+(ty>=oys?15*sc:-9*sc));
+    ctx.textAlign='left';
+  }
+  ctx.globalAlpha=1;
+}
+
+/* ---------- left: cavity field plane ---------- */
+function drawField(){
+  const {ctx,W,H}=ENGINE.physics; ctx.clearRect(0,0,W,H);
+  // autoscale radius from cloud + reference
+  let mr=2; for(const s of ENGINE.cloud){ const r=Math.hypot(s[0],s[1]); if(r>mr)mr=r; }
+  const rr=Math.hypot(ENGINE.y[0],ENGINE.y[1]); if(rr>mr)mr=rr;
+  const target=mr*1.18; ENGINE.fieldScale+=(target-ENGINE.fieldScale)*0.06;
+  const R=Math.max(3,ENGINE.fieldScale), xr=[-R,R], yr=[-R,R];
+  const m={l:54,r:18,t:46,b:40}, pw=W-m.l-m.r, ph=H-m.t-m.b;
+  const X=v=>m.l+(v-xr[0])/(xr[1]-xr[0])*pw, Y=v=>m.t+(1-(v-yr[0])/(yr[1]-yr[0]))*ph;
+  gridFrame(ctx,m,pw,ph,X,Y,xr,yr,'Re α','Im α');
+  // reference trail
+  for(let i=0;i<ENGINE.trail.length;i++){ const tr=ENGINE.trail[i]; const xx=X(tr[0]),yy=Y(tr[1]);
+    if(xx<m.l||xx>m.l+pw||yy<m.t||yy>m.t+ph)continue;
+    ctx.fillStyle='rgba(155,140,255,'+(0.04+0.12*i/ENGINE.trail.length)+')'; ctx.fillRect(xx,yy,1.6,1.6); }
+  // cloud
+  for(let i=0;i<ENGINE.cloud.length;i++){ const s=ENGINE.cloud[i]; const xx=X(s[0]),yy=Y(s[1]);
+    if(xx<m.l-4||xx>m.l+pw+4||yy<m.t-4||yy>m.t+ph+4)continue;
+    ctx.fillStyle='hsla('+ENGINE.hues[i]+',70%,68%,.62)'; ctx.beginPath();ctx.arc(xx,yy,2.2,0,TAU);ctx.fill(); }
+  // reference marker
+  const rx=X(ENGINE.y[0]),ry=Y(ENGINE.y[1]);
+  // Lyapunov projections onto field plane (cavity components 0,1)
+  const E=exps(),Q=ENGINE.Q;
+  drawModeArrows(ctx, activeDirs(E), ENGINE.y[0], ENGINE.y[1], i=>[Q[i][0],Q[i][1]], X, Y, 0.30*R);
+  if(rx>=m.l&&rx<=m.l+pw&&ry>=m.t&&ry<=m.t+ph){ ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(rx,ry,5.5,0,TAU);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(rx-8,ry);ctx.lineTo(rx+8,ry);ctx.moveTo(rx,ry-8);ctx.lineTo(rx,ry+8);ctx.stroke(); }
+  drawLambdaBar(ctx,m.l,12,pw);
+  drawSpinGauge(ctx,m.l+8,m.t+ph-8);
+}
+function drawLambdaBar(ctx,x,y,w){
+  const on=lambdaOf(ENGINE.T)>0.5, ph=((ENGINE.T%TWO_PI)+TWO_PI)%TWO_PI;
+  const bw=Math.min(w,150), bx=x, by=y+8, h=7;
+  ctx.fillStyle='rgba(168,190,224,.10)'; ctx.fillRect(bx,by,bw,h);
+  ctx.fillStyle='rgba(155,140,255,.45)'; ctx.fillRect(bx,by,bw/2,h);     // on half
+  const cur=bx+ph/TWO_PI*bw; ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(cur,by-3);ctx.lineTo(cur,by+h+3);ctx.stroke();
+  ctx.fillStyle=on?C.field:C.dim; ctx.font="600 10.5px 'JetBrains Mono',monospace"; ctx.textAlign='left';
+  ctx.fillText('λ(t)='+(on?'1 · coupling ON':'0 · coupling OFF'), bx, by-6);
+}
+function drawSpinGauge(ctx,x0,y0){
+  const cols=['#ff9f7a','#ffd166','#6ee7b7','#7aa2ff'];
+  const Rg=26, cx=x0+Rg+4, cy=y0-Rg-4, y=ENGINE.y;
+  ctx.strokeStyle='rgba(168,190,224,.18)';ctx.lineWidth=1; ctx.beginPath();ctx.arc(cx,cy,Rg,0,TAU);ctx.stroke();
+  ctx.fillStyle=C.dim;ctx.font="9px 'JetBrains Mono',monospace";ctx.textAlign='center';ctx.fillText('spins (sx,sy)',cx,cy+Rg+11);
+  const sg=Rg/1.8;
+  for(let k=0;k<4;k++){ const b=SXI[k]; arrow(ctx,cx,cy,cx+y[b]*sg,cy-y[b+1]*sg,cols[k],1.6,5); }
+  // averaged
+  arrow(ctx,cx,cy,cx+avgSx(y)*sg,cy-avgSy(y)*sg,'#fff',2,6);
+  ctx.textAlign='left';
+}
+
+/* ---------- right: averaged-spin phase plane (publication composer) ---------- */
+function spinLabel(ctx, cx, cy, sub, px, col){
+  // renders  s_sub  centred at (cx,cy), middle baseline (LaTeX-style math)
+  ctx.save(); ctx.fillStyle=col; ctx.textBaseline='middle'; ctx.textAlign='left';
+  const fMain='italic '+px+"px 'Spectral', Georgia, serif";
+  const fSub='italic '+(px*0.64)+"px 'Spectral', Georgia, serif";
+  ctx.font=fMain; const wS=ctx.measureText('s').width;
+  ctx.font=fSub;  const wSub=ctx.measureText(sub).width;
+  let x=cx-(wS+wSub)/2;
+  ctx.font=fMain; ctx.fillText('s',x,cy); x+=wS;
+  ctx.font=fSub;  ctx.fillText(sub,x,cy+px*0.20);
+  ctx.restore();
+}
+function composePhase(ctx,W,H,forExport){
+  const s=W/560;
+  if(forExport){ const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#0c111b'); g.addColorStop(1,'#080c14');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+  else ctx.clearRect(0,0,W,H);
+  const R=1.85, xr=[-R,R], yr=[-R,R];
+  const mL=86*s, mR=30*s, mT=34*s, mB=86*s;
+  const aw=W-mL-mR, ah=H-mT-mB, plot=Math.min(aw,ah);
+  const x0=mL+(aw-plot)/2, y0=mT+(ah-plot)/2;
+  const X=v=>x0+(v-xr[0])/(xr[1]-xr[0])*plot, Y=v=>y0+(1-(v-yr[0])/(yr[1]-yr[0]))*plot;
+  // faint grid
+  ctx.strokeStyle='rgba(168,190,224,.10)'; ctx.lineWidth=1*s;
+  for(let i=0;i<=8;i++){ const gx=x0+plot*i/8, gy=y0+plot*i/8;
+    ctx.beginPath();ctx.moveTo(gx,y0);ctx.lineTo(gx,y0+plot);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x0,gy);ctx.lineTo(x0+plot,gy);ctx.stroke(); }
+  // ---- clip everything data-related to the plot box ----
+  ctx.save(); ctx.beginPath(); ctx.rect(x0,y0,plot,plot); ctx.clip();
+  // reference trail
+  for(let i=0;i<ENGINE.trail.length;i++){ const tr=ENGINE.trail[i]; const xx=X(tr[2]),yy=Y(tr[3]);
+    if(xx<x0||xx>x0+plot||yy<y0||yy>y0+plot)continue;
+    ctx.fillStyle='rgba(168,190,224,'+(0.05+0.12*i/ENGINE.trail.length)+')'; ctx.fillRect(xx,yy,1.6*s,1.6*s); }
+  // cloud
+  for(let i=0;i<ENGINE.cloud.length;i++){ const st=ENGINE.cloud[i]; const xx=X(avgSx(st)),yy=Y(avgSy(st));
+    if(xx<x0-4||xx>x0+plot+4||yy<y0-4||yy>y0+plot+4)continue;
+    ctx.fillStyle='hsl('+ENGINE.hues[i]+',78%,62%)'; ctx.beginPath();ctx.arc(xx,yy,2.4*s,0,TAU);ctx.fill(); }
+  // thick white axes
+  ctx.lineCap='round'; ctx.strokeStyle='rgba(255,255,255,.95)'; ctx.lineWidth=2.8*s;
+  ctx.beginPath();ctx.moveTo(x0,Y(0));ctx.lineTo(x0+plot,Y(0));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(X(0),y0);ctx.lineTo(X(0),y0+plot);ctx.stroke();
+  // Lyapunov mode arrows (large labels) + reference crosshair
+  const E=exps(), Q=ENGINE.Q;
+  drawModeArrows(ctx, activeDirs(E), avgSx(ENGINE.y), avgSy(ENGINE.y), i=>deltaAvg(Q[i],ENGINE.y), X, Y, 0.78*R, s);
+  const rx=X(avgSx(ENGINE.y)),ry=Y(avgSy(ENGINE.y));
+  if(rx>=x0&&rx<=x0+plot&&ry>=y0&&ry<=y0+plot){ ctx.strokeStyle='#fff';ctx.lineWidth=1.8*s;
+    ctx.beginPath();ctx.arc(rx,ry,5.5*s,0,TAU);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(rx-8*s,ry);ctx.lineTo(rx+8*s,ry);ctx.moveTo(rx,ry-8*s);ctx.lineTo(rx,ry+8*s);ctx.stroke(); }
+  ctx.restore(); // ---- end clip ----
+  // frame
+  ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.lineWidth=1.6*s; ctx.strokeRect(x0,y0,plot,plot);
+  // ticks + numbers (white), drawn on top, outside the clip
+  ctx.fillStyle='rgba(255,255,255,.9)'; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.font=(13.5*s)+"px 'JetBrains Mono',monospace";
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  for(const tv of [-1,0,1]){ const px=X(tv); ctx.lineWidth=2*s;
+    ctx.beginPath();ctx.moveTo(px,Y(0)-5*s);ctx.lineTo(px,Y(0)+5*s);ctx.stroke();
+    if(tv!==0) ctx.fillText(tv.toFixed(0), px, y0+plot+7*s); }
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(const tv of [-1,1]){ const py=Y(tv); ctx.lineWidth=2*s;
+    ctx.beginPath();ctx.moveTo(X(0)-5*s,py);ctx.lineTo(X(0)+5*s,py);ctx.stroke();
+    ctx.fillText(tv.toFixed(0), x0-7*s, py); }
+  // big LaTeX-style axis labels
+  spinLabel(ctx, x0+plot/2, y0+plot+52*s, 'x', 30*s, '#ffffff');
+  ctx.save(); ctx.translate(x0-56*s, y0+plot/2); ctx.rotate(-Math.PI/2); spinLabel(ctx,0,0,'y',30*s,'#ffffff'); ctx.restore();
+}
+function drawPhase(){ const {ctx,W,H}=ENGINE.phase; composePhase(ctx,W,H,false); }
+
+/* ---------- figure export ---------- */
+function dl(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+function exportCanvas(px){ const c=document.createElement('canvas'); c.width=px; c.height=px; composePhase(c.getContext('2d'),px,px,true); return c; }
+function savePNG(){ exportCanvas(3000).toBlob(b=>dl(b,'phase-space.png'),'image/png'); }
+function savePDF(){ const px=3000, durl=exportCanvas(px).toDataURL('image/jpeg',0.95), bin=atob(durl.split(',')[1]);
+  dl(new Blob([buildPDF(bin,px,px,5)],{type:'application/pdf'}),'phase-space.pdf'); }
+function buildPDF(jpeg,w,h,inches){
+  const Wp=(inches*72).toFixed(2), parts=[]; let pos=0; const off=[];
+  const add=s=>{parts.push(s);pos+=s.length;};
+  add("%PDF-1.4\n%\u00ff\u00ff\u00ff\u00ff\n");
+  off[1]=pos; add("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+  off[2]=pos; add("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
+  off[3]=pos; add("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+Wp+" "+Wp+"] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n");
+  off[4]=pos; add("4 0 obj\n<< /Type /XObject /Subtype /Image /Width "+w+" /Height "+h+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+jpeg.length+" >>\nstream\n");
+  add(jpeg); add("\nendstream\nendobj\n");
+  const content="q "+Wp+" 0 0 "+Wp+" 0 0 cm /Im0 Do Q";
+  off[5]=pos; add("5 0 obj\n<< /Length "+content.length+" >>\nstream\n"+content+"\nendstream\nendobj\n");
+  const xref=pos; add("xref\n0 6\n0000000000 65535 f \n");
+  for(let i=1;i<=5;i++) add((""+off[i]).padStart(10,'0')+" 00000 n \n");
+  add("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF");
+  const all=parts.join(''), u=new Uint8Array(all.length); for(let i=0;i<all.length;i++)u[i]=all.charCodeAt(i)&0xff; return u;
+}
+function saveSVG(){
+  const W=1000,s=W/560,R=1.85,mL=86*s,mR=30*s,mT=34*s,mB=86*s,aw=W-mL-mR,ah=W-mT-mB,plot=Math.min(aw,ah);
+  const x0=mL+(aw-plot)/2,y0=mT+(ah-plot)/2;
+  const X=v=>x0+(v+R)/(2*R)*plot, Y=v=>y0+(1-(v+R)/(2*R))*plot, f=n=>(+n).toFixed(2);
+  let g='';
+  g+=`<rect width="${W}" height="${W}" fill="#0a0f18"/>`;
+  for(let i=0;i<=8;i++){const gx=x0+plot*i/8,gy=y0+plot*i/8;
+    g+=`<line x1="${f(gx)}" y1="${f(y0)}" x2="${f(gx)}" y2="${f(y0+plot)}" stroke="#a8bee0" stroke-opacity="0.10"/>`;
+    g+=`<line x1="${f(x0)}" y1="${f(gy)}" x2="${f(x0+plot)}" y2="${f(gy)}" stroke="#a8bee0" stroke-opacity="0.10"/>`;}
+  for(let i=0;i<ENGINE.trail.length;i+=3){const tr=ENGINE.trail[i],xx=X(tr[2]),yy=Y(tr[3]);
+    if(xx<x0||xx>x0+plot||yy<y0||yy>y0+plot)continue; g+=`<rect x="${f(xx-1)}" y="${f(yy-1)}" width="2.2" height="2.2" fill="#a8bee0" fill-opacity="${(0.05+0.12*i/ENGINE.trail.length).toFixed(2)}"/>`;}
+  for(let i=0;i<ENGINE.cloud.length;i++){const st=ENGINE.cloud[i],xx=X(avgSx(st)),yy=Y(avgSy(st));
+    if(xx<x0||xx>x0+plot||yy<y0||yy>y0+plot)continue; g+=`<circle cx="${f(xx)}" cy="${f(yy)}" r="2.6" fill="hsl(${ENGINE.hues[i].toFixed(0)},78%,62%)"/>`;}
+  g+=`<line x1="${f(x0)}" y1="${f(Y(0))}" x2="${f(x0+plot)}" y2="${f(Y(0))}" stroke="#ffffff" stroke-width="${f(2.8*s)}" stroke-opacity="0.95" stroke-linecap="round"/>`;
+  g+=`<line x1="${f(X(0))}" y1="${f(y0)}" x2="${f(X(0))}" y2="${f(y0+plot)}" stroke="#ffffff" stroke-width="${f(2.8*s)}" stroke-opacity="0.95" stroke-linecap="round"/>`;
+  g+=`<rect x="${f(x0)}" y="${f(y0)}" width="${f(plot)}" height="${f(plot)}" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="${f(1.5*s)}"/>`;
+  for(const tv of [-1,1]){ g+=`<text x="${f(X(tv))}" y="${f(y0+plot+10*s)}" fill="#fff" font-family="JetBrains Mono,monospace" font-size="${f(13.5*s)}" text-anchor="middle" dominant-baseline="hanging">${tv}</text>`;
+    g+=`<text x="${f(x0-8*s)}" y="${f(Y(tv))}" fill="#fff" font-family="JetBrains Mono,monospace" font-size="${f(13.5*s)}" text-anchor="end" dominant-baseline="middle">${tv}</text>`; }
+  // mode arrows
+  const E=exps(),Q=ENGINE.Q,ox=avgSx(ENGINE.y),oy=avgSy(ENGINE.y),dirs=activeDirs(E);
+  const items=dirs.map(([idx,val])=>{const p=deltaAvg(Q[idx],ENGINE.y);return {val,p,n:Math.hypot(p[0],p[1])};});
+  let maxN=1e-9; for(const it of items)maxN=Math.max(maxN,it.n);
+  for(const it of items){ const col=it.val>NEUTRAL?'#ff6f5d':it.val<-NEUTRAL?'#46d6e6':'#e7b84c', lab='λ = '+(it.val>=0?'+':'')+it.val.toFixed(2);
+    const oxs=X(ox),oys=Y(oy); if(it.n<1e-6){ g+=`<circle cx="${f(oxs)}" cy="${f(oys)}" r="${f(8*s)}" fill="none" stroke="${col}" stroke-width="${f(1.6*s)}" opacity="0.6"/>`;
+      g+=`<text x="${f(oxs+11*s)}" y="${f(oys-9*s)}" fill="${col}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${f(13.5*s)}">${lab} ⟂plane</text>`; continue; }
+    const ux=it.p[0]/it.n,uy=it.p[1]/it.n,L=0.78*R*(0.42+0.58*it.n/maxN),tx=X(ox+ux*L),ty=Y(oy+uy*L),ang=Math.atan2(ty-oys,tx-oxs),hd=9*s;
+    g+=`<line x1="${f(oxs)}" y1="${f(oys)}" x2="${f(tx)}" y2="${f(ty)}" stroke="${col}" stroke-width="${f(3*s)}" stroke-linecap="round"/>`;
+    g+=`<polygon points="${f(tx)},${f(ty)} ${f(tx-hd*Math.cos(ang-0.42))},${f(ty-hd*Math.sin(ang-0.42))} ${f(tx-hd*Math.cos(ang+0.42))},${f(ty-hd*Math.sin(ang+0.42))}" fill="${col}"/>`;
+    const anc=tx>=oxs?'start':'end'; g+=`<text x="${f(tx+(tx>=oxs?7*s:-7*s))}" y="${f(ty+(ty>=oys?15*s:-9*s))}" fill="${col}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${f(14.5*s)}" text-anchor="${anc}">${lab}</text>`; }
+  // crosshair
+  const rx=X(ox),ry=Y(oy);
+  g+=`<circle cx="${f(rx)}" cy="${f(ry)}" r="${f(5.5*s)}" fill="none" stroke="#fff" stroke-width="${f(1.8*s)}"/>`;
+  g+=`<line x1="${f(rx-8*s)}" y1="${f(ry)}" x2="${f(rx+8*s)}" y2="${f(ry)}" stroke="#fff" stroke-width="${f(1.5*s)}"/><line x1="${f(rx)}" y1="${f(ry-8*s)}" x2="${f(rx)}" y2="${f(ry+8*s)}" stroke="#fff" stroke-width="${f(1.5*s)}"/>`;
+  // math axis labels
+  const lp=30*s, sp=lp*0.64;
+    g+=`<text x="${f(x0+plot/2)}" y="${f(y0+plot+58*s)}" fill="#fff" font-family="Spectral,Georgia,serif" font-size="${f(lp)}" text-anchor="middle"><tspan font-style="italic">s</tspan><tspan font-style="italic" font-size="${f(sp)}" dy="${f(lp*0.18)}">x</tspan></text>`;
+  g+=`<text x="${f(x0-58*s)}" y="${f(y0+plot/2)}" fill="#fff" font-family="Spectral,Georgia,serif" font-size="${f(lp)}" text-anchor="middle" transform="rotate(-90 ${f(x0-58*s)} ${f(y0+plot/2)})"><tspan font-style="italic">s</tspan><tspan font-style="italic" font-size="${f(sp)}" dy="${f(lp*0.18)}">y</tspan></text>`;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${W}" viewBox="0 0 ${W} ${W}">${g}</svg>`;
+  dl(new Blob([svg],{type:'image/svg+xml'}),'phase-space.svg');
+}
+
+
+/* ---------- readout ---------- */
+function drawReadout(){
+  const raw=exps();
+  const order=raw.map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v);
+  const sum=raw.reduce((s,v)=>s+v,0);
+  const lmax=order[0].v, npos=order.filter(o=>o.v>NEUTRAL).length;
+  const chip=document.getElementById('classChip');
+  if(ENGINE.T<3){ chip.textContent='estimating…'; chip.style.color=C.muted; }
+  else if(lmax>NEUTRAL){ chip.textContent=(npos>1?'Hyperchaos · '+npos+' positive λ':'Chaotic · strange attractor'); chip.style.color=C.expand; }
+  else if(lmax>0.008){ chip.textContent='Weakly chaotic'; chip.style.color=C.neutral; }
+  else { chip.textContent='Regular · quasi-periodic'; chip.style.color=C.contract; }
+
+  const ro=document.getElementById('readout'); const settling=ENGINE.T<8;
+  const set=shownSet(raw);
+  const card=(o,lbl,tag)=>{ const c=colorOf(o.v); const s=set.has(o.i)?' sel':'';
+    return `<div class="expcard cl${s}" data-idx="${o.i}" style="border-left-color:${c}"><div class="lbl">${lbl}</div>`+
+    `<div class="val" style="color:${c}">${o.v>=0?'+':''}${o.v.toFixed(3)}</div><div class="tag">${tag}</div></div>`; };
+  ro.innerHTML=
+    card(order[0],'λ max',order[0].v>NEUTRAL?'expanding':order[0].v<-NEUTRAL?'contracting':'neutral')+
+    card(order[1],'λ₂','2nd direction')+
+    `<div class="expcard" style="border-left-color:${C.expand}"><div class="lbl">positive λ</div><div class="val">${npos}</div><div class="tag">unstable dims</div></div>`+
+    `<div class="meta">`+
+      `<div class="metacard"><div class="lbl">Σλ (= −κ)</div><div class="val" style="color:${Math.abs(sum+KAPPA)<0.01?C.contract:C.expand}">${sum>=0?'+':''}${sum.toFixed(3)}</div></div>`+
+      `<div class="metacard"><div class="lbl">sim time</div><div class="val">${ENGINE.T.toFixed(1)}${settling?' ·est':''}</div></div>`+
+    `</div>`;
+  let strip='<b>show vectors</b>'+
+    `<button class="qbtn${ENGINE.autoExtremes?' on':''}" data-set="auto">extremes</button>`+
+    `<button class="qbtn" data-set="all">all</button>`+
+    `<button class="qbtn" data-set="none">none</button>&nbsp;&nbsp;`;
+  order.forEach(o=>{ const s=set.has(o.i)?' sel':''; strip+=`<span class="cl${s}" data-idx="${o.i}" style="color:${colorOf(o.v)}">${o.v>=0?'+':''}${o.v.toFixed(2)}</span>&nbsp;`; });
+  document.getElementById('spectrum').innerHTML=strip;
+  renderVecView(raw);
+}
+
+/* ---------- loop / wiring ---------- */
+let racc=0;
+function loop(){ requestAnimationFrame(loop); if(ENGINE.running)step(); drawField(); drawPhase();
+  racc+=16; if(racc>240){ drawReadout(); racc=0; } }
+function rebuild(){ ENGINE.physics=setupCanvas(ENGINE.physC); ENGINE.phase=setupCanvas(ENGINE.phaseC); }
+function boot(){
+  ENGINE.physC=document.getElementById('physCanvas'); ENGINE.phaseC=document.getElementById('phaseCanvas');
+  rebuild(); initSystem();
+  document.getElementById('applyBtn').addEventListener('click',initSystem);
+  const pb=document.getElementById('playBtn');
+  pb.addEventListener('click',()=>{ENGINE.running=!ENGINE.running; pb.textContent=ENGINE.running?'⏸ pause':'▶ play';});
+  const sp=document.getElementById('speed'),spv=document.getElementById('speedv');
+  sp.addEventListener('input',()=>{ENGINE.speed=+sp.value; spv.textContent=(+sp.value).toFixed(1)+'×';});
+  document.getElementById('readout').addEventListener('pointerdown',e=>{const c=e.target.closest('[data-idx]'); if(c)toggleMode(+c.dataset.idx);});
+  document.getElementById('spectrum').addEventListener('pointerdown',e=>{
+    const b=e.target.closest('[data-set]'); if(b){ setShown(b.dataset.set); return; }
+    const c=e.target.closest('[data-idx]'); if(c)toggleMode(+c.dataset.idx);});
+  document.getElementById('savePng').addEventListener('click',savePNG);
+  document.getElementById('savePdf').addEventListener('click',savePDF);
+  document.getElementById('saveSvg').addEventListener('click',saveSVG);
+  let rt; window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(rebuild,150);});
+  requestAnimationFrame(loop);
+}
+window.addEventListener('load',boot);
+</script>
+</body>
+</html>

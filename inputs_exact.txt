@@ -1,0 +1,2 @@
+ep      k       type    lambda  per    N     ninit   sxinit  syinit  szinit  method	   integrator	tmax	 modulated	 evolving	 nphoton	dt	      ntraj  mem  ntasks
+-0.02   0.05    lambda  1.0     1.0    17    0.0     1.0     0.0     0.0     exact     piqs         1000     True        True        550        0.1       10     10   500
