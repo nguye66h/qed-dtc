@@ -1,0 +1,41 @@
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store
+*.textClipping
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.ipynb_checkpoints/
+build/
+dist/
+
+# Numba cache
+*.nbi
+*.nbc
+
+# Local solver output. src/exact.py and src/twa.py write "foldername/";
+# src/cumulants.py writes "filename.txt". Override with QED_DTC_OUTDIR
+# and QED_DTC_OUTFILE. "out/" is the directory used in the README example.
+foldername/
+filename.txt
+out/
+
+# SLURM wrapper scratch
+msgs/
+run.sl
+
+# Newly generated numeric dumps under figures/. Files already tracked by
+# git stay tracked; these patterns only stop new raw output from being
+# added. The existing raw_data and plot_data trees are left in place
+# until they move to a Zenodo record.
+figures/**/raw_data/**
+figures/**/plot_data/**
+figures/SM3/ep=*/**
+floquet_mul_heatmap_data_new.txt

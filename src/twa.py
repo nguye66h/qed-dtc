@@ -7,6 +7,10 @@ import time
 import argparse
 import os
 
+# Historical default is the literal directory name "foldername", relative to
+# the working directory. Set QED_DTC_OUTDIR to write somewhere else.
+OUTDIR = os.environ.get("QED_DTC_OUTDIR", "foldername")
+
 def sample_initial_spin():
     """
     Sample the initial spin condition according to the specified distribution.
@@ -319,7 +323,7 @@ print(f"Simulation took {end_time - start_time:.2f} seconds")
 spin_avg = compute_spin_average(myresults)
 number_avg = compute_number_average(myresults)
 
-directory = f'foldername'
+directory = OUTDIR
 os.makedirs(directory, exist_ok=True)
 filename = f'i={args.tasknum}.txt'
 full_path = os.path.join(directory, filename)

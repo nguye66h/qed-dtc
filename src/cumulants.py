@@ -3,6 +3,11 @@ from numba import jit
 import argparse
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
+import os
+
+# Historical default is the literal filename "filename.txt" in the working
+# directory. Set QED_DTC_OUTFILE to write somewhere else.
+OUTFILE = os.environ.get("QED_DTC_OUTFILE", "filename.txt")
 
 # Create the parser
 parser = argparse.ArgumentParser()
@@ -223,7 +228,7 @@ def main():
         elif method == 'psc':
             solution = solve_ivp(psc_derivatives, (0, t_max), initial_state, method='BDF', t_eval = t_eval, atol=atol, rtol=rtol)
 
-    np.savetxt(f'filename.txt',np.column_stack((solution.t, solution.y[1])))
+    np.savetxt(OUTFILE, np.column_stack((solution.t, solution.y[1])))
     return solution
 
 if __name__ == '__main__':
