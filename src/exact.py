@@ -1,8 +1,17 @@
 import qutip
 import os
 from qutip import *
-from qutip.piqs import *
+# QuTiP 4 exported jspin from qutip.piqs. QuTiP 5 keeps the same function
+# in qutip.piqs.piqs and no longer re-exports it. Same operator either way.
+try:
+    from qutip.piqs import jspin
+except ImportError:
+    from qutip.piqs.piqs import jspin
 import numpy as np
+
+# Historical default is the literal directory name "foldername", relative to
+# the working directory. Set QED_DTC_OUTDIR to write somewhere else.
+OUTDIR = os.environ.get("QED_DTC_OUTDIR", "foldername")
 import argparse
 import matplotlib.pyplot as plt
 
@@ -100,15 +109,15 @@ nphot_tot = tensor(a.dag()*a, qeye(nds))
 a_tot = tensor(a, qeye(nds))
 
 if args.sx_init != 0:
-    _, U = np.linalg.eigh(jx)
+    _, U = np.linalg.eigh(jx.full())
     indval = round(args.sx_init)
     initspin = "sx"
 elif args.sy_init != 0:
-    _, U = np.linalg.eigh(jy)
+    _, U = np.linalg.eigh(jy.full())
     indval = round(args.sy_init)
     initspin = "sy"
 elif args.sz_init != 0:
-    _, U = np.linalg.eigh(jz)
+    _, U = np.linalg.eigh(jz.full())
     indval = round(args.sz_init)
     initspin = "sz"
 
@@ -120,7 +129,7 @@ elif indval == -1:
 if round(args.ntraj) == 0:
 
     # Path where you want to save the file
-    directory = f'foldername'
+    directory = OUTDIR
     filename = f'me-results.txt'
     full_path = os.path.join(directory, filename)
 
@@ -134,7 +143,11 @@ if round(args.ntraj) == 0:
     times = 2*np.pi * np.arange(0,args.tmax+args.dt,args.dt)  # Array of time points to evolve the system
 
     # Run the time evolution
-    result = mesolve(hamil_tot, wf_0, times, c_ops, [a_tot, jx_tot, jy_tot, jz_tot, nphot_tot])
+    # e_ops is keyword-only in QuTiP 5 and a normal argument in QuTiP 4.
+    result = mesolve(
+        hamil_tot, wf_0, times, c_ops,
+        e_ops=[a_tot, jx_tot, jy_tot, jz_tot, nphot_tot],
+    )
 
     # find expectation values
     a_t =  result.expect[0]
@@ -149,7 +162,7 @@ if round(args.ntraj) == 0:
 else:
 
     # Path where you want to save the file
-    directory = f'foldername'
+    directory = OUTDIR
     filename = f'i={args.i_}.txt'
     full_path = os.path.join(directory, filename)
 
@@ -163,7 +176,11 @@ else:
     times = 2*np.pi * np.arange(0,args.tmax+args.dt,args.dt)  # Array of time points to evolve the system
 
     # Run the time evolution
-    result = mcsolve(hamil_tot, wf_0, times, c_ops, [a_tot, jx_tot, jy_tot, jz_tot, nphot_tot], ntraj=args.ntraj)
+    result = mcsolve(
+        hamil_tot, wf_0, times, c_ops,
+        e_ops=[a_tot, jx_tot, jy_tot, jz_tot, nphot_tot],
+        ntraj=args.ntraj,
+    )
 
     # find expectation values
     a_t =  result.expect[0]

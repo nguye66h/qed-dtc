@@ -1,0 +1,10 @@
+# Runtime dependencies for the solvers in src/ and the figure scripts.
+# Install with:  pip install -r requirements.txt
+# The smoke test also needs pytest (pip install -e ".[dev]").
+numpy>=1.24
+scipy>=1.11
+matplotlib>=3.7
+qutip>=4.7
+numba>=0.58
+pandas>=2.0
+seaborn>=0.13

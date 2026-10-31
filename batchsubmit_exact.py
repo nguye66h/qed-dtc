@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 
 def read_inputs(inputs_filename):
     """Reads inputs.txt file and returns the job information."""
@@ -43,7 +44,9 @@ def read_inputs(inputs_filename):
     return jobs
 
 def main():
-    inputs_filename = 'inputs.txt'
+    # The parameter table shipped with the repo is inputs_exact.txt.
+    # Pass another path as the first argument to override.
+    inputs_filename = sys.argv[1] if len(sys.argv) > 1 else 'inputs_exact.txt'
 
     # Read inputs
     jobs = read_inputs(inputs_filename)

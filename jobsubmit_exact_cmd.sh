@@ -1,4 +1,9 @@
 #!/bin/bash
+# Submit one exact (QuTiP) or cumulant job to SLURM.
+#
+# QED_DTC_ROOT  repository root (default: the directory that contains this script)
+# CONDA_ENV     environment passed to `conda activate`
+#               (default: the NERSC environment used for the paper runs)
 
 ep=${1}
 k=${2}
@@ -21,10 +26,14 @@ ntraj=${18}
 mem=${19}
 i_=${20}
 
-mkdir -p $HOME/qed-dtc/msgs/
-cd $HOME/qed-dtc/msgs/
+ROOT="${QED_DTC_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+CONDA_ENV="${CONDA_ENV:-/global/common/software/py38}"
 
-echo "#!/bin/bash
+mkdir -p "$ROOT/msgs"
+cd "$ROOT/msgs"
+
+cat > run.sl << EOF
+#!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --constraint=cpu
 ##SBATCH -q debug
@@ -38,21 +47,22 @@ echo "#!/bin/bash
 
 module load conda
 
-conda activate /global/common/software/py38
+conda activate ${CONDA_ENV}
 
 export OMP_NUM_THREADS=1
 
-# mkdir -p $SCRATCH/qed-dtc/
-# cd $SCRATCH/qed-dtc/
+# mkdir -p \$SCRATCH/qed-dtc/
+# cd \$SCRATCH/qed-dtc/
 
 rm -f ~/.cache/matplotlib/fontlist-v330.json
 
-if [ ${method} = "exact" ]; then
-	srun python3 $HOME/qed-dtc/src/exact.py ${ep} ${k} ${type_of_coupling} ${lambdaa} ${per} ${N} ${ainit} ${sxinit} ${syinit} ${szinit} ${tmax} ${nphoton} ${evolving} ${dt} ${modulated} ${ntraj} ${i_}
+if [ "${method}" = "exact" ]; then
+	srun python3 ${ROOT}/src/exact.py ${ep} ${k} ${type_of_coupling} ${lambdaa} ${per} ${N} ${ainit} ${sxinit} ${syinit} ${szinit} ${tmax} ${nphoton} ${evolving} ${dt} ${modulated} ${ntraj} ${i_}
 else
-	srun python3 $HOME/qed-dtc/src/cumulants.py ${ep} ${k} ${type_of_coupling} ${lambdaa} ${per} ${N} ${ainit} ${sxinit} ${syinit} ${szinit} ${method} ${integrator} ${tmax} ${modulated}
+	srun python3 ${ROOT}/src/cumulants.py ${ep} ${k} ${type_of_coupling} ${lambdaa} ${per} ${N} ${ainit} ${sxinit} ${syinit} ${szinit} ${method} ${integrator} ${tmax} ${modulated}
 fi
-" > run.sl
+EOF
+
 #send interrupt signal 90 seconds before job is terminated
 #sbatch --signal=INT@90 run.sl
 

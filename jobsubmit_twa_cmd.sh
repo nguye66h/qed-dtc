@@ -1,4 +1,9 @@
 #!/bin/bash
+# Submit one truncated-Wigner job to SLURM.
+#
+# QED_DTC_ROOT  repository root (default: the directory that contains this script)
+# CONDA_ENV     environment passed to `conda activate`
+#               (default: the NERSC environment used for the paper runs)
 
 w=${1}
 w0=${2}
@@ -18,10 +23,14 @@ ntraj=${15}
 tasknum=${16}
 mem=${17}
 
-mkdir -p $HOME/qed-dtc/msgs/
-cd $HOME/qed-dtc/msgs/
+ROOT="${QED_DTC_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+CONDA_ENV="${CONDA_ENV:-/global/common/software/py38}"
 
-echo "#!/bin/bash
+mkdir -p "$ROOT/msgs"
+cd "$ROOT/msgs"
+
+cat > run.sl << EOF
+#!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --constraint=cpu
 ##SBATCH -q debug
@@ -35,16 +44,17 @@ echo "#!/bin/bash
 
 module load conda
 
-conda activate /global/common/software/py38
+conda activate ${CONDA_ENV}
 
 export OMP_NUM_THREADS=1
 
-# mkdir -p $SCRATCH/qed-dtc/
-# cd $SCRATCH/qed-dtc/
+# mkdir -p \$SCRATCH/qed-dtc/
+# cd \$SCRATCH/qed-dtc/
 
 
-srun python3 $HOME/qed-dtc/src/twa.py ${w} ${w0} ${k} ${type_of_coupling} ${lambdaa} ${per} ${N} ${ainit} ${sxinit} ${syinit} ${szinit} ${tmax} ${dt} ${ntraj} ${tasknum} ${modulated}
-" > run.sl
+srun python3 ${ROOT}/src/twa.py ${w} ${w0} ${k} ${type_of_coupling} ${lambdaa} ${per} ${N} ${ainit} ${sxinit} ${syinit} ${szinit} ${tmax} ${dt} ${ntraj} ${tasknum} ${modulated}
+EOF
+
 #send interrupt signal 90 seconds before job is terminated
 #sbatch --signal=INT@90 run.sl
 
